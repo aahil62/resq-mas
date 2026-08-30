@@ -1,0 +1,5 @@
+improvement_pct,mas_mean,metric,no_coordination_mean
+20.94281298299846,102.3,completion_time,129.4
+18.804435771738618,56.86666666666666,avg_waiting_time,70.03666666666666
+100.0,0.0,duplicate_conflicts,3.9
+-0.0,6.8,victims_rescued,6.8

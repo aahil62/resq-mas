@@ -1,0 +1,188 @@
+/*
+  Lane: "A 1980s NASA mission-control room meets a submarine sonar console."
+  One confident monospace (Martian Mono) carries the whole interface --
+  wide/heavy for display, regular for data -- rather than hedging with a
+  second "safe" sans. The single interactive accent is a sonar-cyan, kept
+  clear of the two data-semantic hues (--nc blue / --mas orange) that must
+  stay pinned to the matplotlib chart colors already baked into
+  results/*.png.
+*/
+:root {
+  --bg: #0a0d12;
+  --panel: #0f141b;
+  --panel-2: #141b24;
+  --border: #232c38;
+  --border-strong: #33404f;
+  --text: #e9edf3;
+  --text-dim: #7d8996;
+
+  --accent: #29e0c9;
+  --accent-ink: #04211d;
+  --good: #3fb950;
+  --warn: #d29922;
+  --bad: #f85149;
+
+  /* Data-semantic pair, fixed to match results/chart_*.png (matplotlib
+     default series colors) -- never restyle these independently of the
+     charts they must visually match. */
+  --nc: #4c72b0;
+  --mas: #dd8452;
+
+  --c-road: #1a2029;
+  --c-building: #384049;
+  --c-hospital: #165433;
+  --c-depot: #362a5e;
+  --c-blocked: #661d1d;
+
+  --sev-critical: #f85149;
+  --sev-high: #ff8c42;
+  --sev-moderate: #e3b341;
+  --sev-low: #6fd88a;
+
+  --font-display: 'Martian Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --font-mono: 'Martian Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-fast: 120ms var(--ease-out);
+
+  font-family: var(--font-mono);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+button, input, select {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+a { color: var(--accent); }
+
+.mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+code, pre, kbd, samp {
+  font-family: var(--font-mono);
+}
+
+/* The signature texture: a faint scanline field, like a CRT/radar
+   readout, sitting behind every panel at ~4% opacity -- felt, not seen. */
+.panel {
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      rgba(233, 237, 243, 0.025) 0px,
+      rgba(233, 237, 243, 0.025) 1px,
+      transparent 1px,
+      transparent 3px
+    ),
+    var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+}
+
+.panel-title {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-dim);
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 12.5px;
+}
+
+th, td {
+  border-bottom: 1px solid var(--border);
+  padding: 5px 8px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+th {
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.btn {
+  background: var(--panel-2);
+  border: 1px solid var(--border-strong);
+  color: var(--text);
+  padding: 5px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  transition: border-color var(--transition-fast), background-color var(--transition-fast), color var(--transition-fast), filter var(--transition-fast);
+}
+.btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 700; }
+.btn.primary:hover:not(:disabled) { filter: brightness(1.1); color: var(--accent-ink); }
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 10px;
+}
+.stat .value { font-family: var(--font-display); font-variant-numeric: tabular-nums; font-size: 20px; font-weight: 700; letter-spacing: 0.01em; }
+.stat .label { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.07em; }
+
+.badge {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Accessible, visible keyboard focus everywhere -- never removed, only ever
+   redirected to :focus-visible so mouse clicks stay quiet. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+:focus:not(:focus-visible) { outline: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+@keyframes pulse-alert {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+
+@keyframes pulse-live {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(41, 224, 201, 0.5); }
+  50% { opacity: 0.55; box-shadow: 0 0 0 3px rgba(41, 224, 201, 0); }
+}

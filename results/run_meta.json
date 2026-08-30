@@ -1,0 +1,26 @@
+{
+  "scenarios": {
+    "high_overlap": [
+      11,
+      17
+    ],
+    "moderate_overlap": [
+      2,
+      5
+    ],
+    "more_victims_than_agents": [
+      1,
+      2
+    ],
+    "low_conflict": [
+      25,
+      30
+    ],
+    "blocked_route": [
+      1,
+      9
+    ]
+  },
+  "total_runs": 20,
+  "elapsed_seconds": 0.08418798446655273
+}
