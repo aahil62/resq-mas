@@ -64,6 +64,7 @@ class Victim:
     rescue_time: int | None = None
     waiting_time: int = 0
     hospital: Position | None = None
+    appear_time: int = 0  # tick at which the victim becomes known (0 = present from the start)
 
     def priority(self) -> float:
         """priority = severity_score + waiting_weight * waiting_time.
@@ -125,6 +126,11 @@ class ScenarioConfig:
     # original behaviour of scaling it with max_time. Pinning it lets a long
     # safety cap on max_time coexist with blockages that land mid-run.
     blockage_horizon: int | None = None
+    # Dynamic arrivals: when > 0, each victim appears at a uniformly random
+    # tick in [0, arrival_window] instead of at t=0. Drawn from a separate
+    # random stream so grid, positions, severities and blockages are
+    # identical to the static world with the same seed.
+    arrival_window: int = 0
 
 
 def _carve_grid(rng: random.Random, width: int, height: int) -> tuple[list[list[CellType]], Position, list[Position]]:
@@ -207,6 +213,11 @@ def generate_scenario(config: ScenarioConfig) -> tuple[list[list[CellType]], Pos
         events.append(ScheduledEvent(timestep=block_t + duration, kind="unblock", payload={"cell": cell}))
 
     events.sort(key=lambda e: e.timestep)
+
+    if config.arrival_window > 0:
+        arrival_rng = random.Random(config.seed * 104729 + 3)
+        for v in victims:
+            v.appear_time = arrival_rng.randint(0, config.arrival_window)
     return grid, hospital, depots, victims, events
 
 
@@ -260,8 +271,9 @@ class Environment:
         return applied
 
     def tick_waiting_times(self) -> None:
+        # Waiting time counts from a victim's appearance, not from t=0.
         for v in self.victims.values():
-            if v.status != VictimStatus.RESCUED:
+            if v.status != VictimStatus.RESCUED and v.appear_time <= self.time:
                 v.waiting_time += 1
 
     def advance_time(self) -> None:

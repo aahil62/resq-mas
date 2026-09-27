@@ -134,13 +134,16 @@ the Value of Communication in Decentralized Multi-Agent Disaster Response.*
 The engine now supports five allocation protocols (`Simulation(policy=...)`):
 `independent` (the original No Coordination), `claim` (broadcast claims only),
 `mas` (the original one-round propose/resolve), `mas_iterative` (losers
-re-propose within the tick), and `hungarian` (centralized optimal matching,
-reference only), plus any number of rescue agents and a lossy-broadcast model
-(`comm_loss=p`). The original `results/` are unchanged by these extensions.
+re-propose within the tick), `hungarian` (centralized optimal matching,
+reference only), and `cbba` (consensus-based bundle algorithm), plus any
+number of rescue agents, victims arriving over time
+(`ScenarioConfig(arrival_window=...)`), and independent or bursty
+Gilbert-Elliott message loss (`comm_loss=p`, `burst_length=L`). The original
+`results/` are unchanged by these extensions.
 
 ```bash
 pip install -r requirements.txt       # adds scipy
-python -m experiments.study           # 28,300 paired runs -> results/study/ (~4 min, 4 cores)
+python -m experiments.study           # 43,350 paired runs -> results/study/ (~8 min, 4 cores)
 python -m experiments.paper_figures   # figures + LaTeX tables -> paper/figures, paper/tables
 cd paper && pdflatex main.tex && pdflatex main.tex
 ```

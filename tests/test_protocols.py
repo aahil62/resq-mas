@@ -95,3 +95,63 @@ def test_optimal_assignment_leaves_surplus_agents_unmatched():
 def test_messages_are_counted_only_for_communicating_policies():
     assert run_policy(demo_config(), "independent").messages == 0
     assert run_policy(demo_config(), "mas").messages > 0
+
+
+# -- dynamic arrivals, bursty loss, CBBA ------------------------------------------
+
+def test_arrivals_keep_the_world_identical_and_stagger_victims():
+    static = Simulation(demo_config(), policy="mas")
+    dynamic = Simulation(demo_config(arrival_window=100), policy="mas")
+    assert static.environment.grid == dynamic.environment.grid
+    assert [v.position for v in static.environment.victims.values()] == \
+        [v.position for v in dynamic.environment.victims.values()]
+    times = [v.appear_time for v in dynamic.environment.victims.values()]
+    assert all(0 <= t <= 100 for t in times) and len(set(times)) > 1
+    assert all(v.appear_time == 0 for v in static.environment.victims.values())
+
+
+def test_victims_are_unknown_and_do_not_wait_before_they_appear():
+    sim = Simulation(demo_config(arrival_window=100), policy="mas")
+    late = max(sim.environment.victims.values(), key=lambda v: v.appear_time)
+    for _ in range(late.appear_time):
+        sim.tick()
+    assert late.victim_id not in sim.shared_state.known_victims
+    assert late.waiting_time == 0
+    sim.tick()
+    assert late.victim_id in sim.shared_state.known_victims
+
+
+@pytest.mark.parametrize("policy", POLICIES)
+def test_every_policy_finishes_under_dynamic_arrivals(policy):
+    result = run_policy(demo_config(arrival_window=150, max_time=2000), policy, rescue_agent_count=3)
+    assert result.victims_rescued == 6
+
+
+def test_bursty_channel_matches_target_loss_rate_and_burst_length():
+    sim = Simulation(demo_config(), policy="mas", rescue_agent_count=1, comm_loss=0.3, burst_length=10)
+    states = []
+    for _ in range(20000):
+        sim._step_channels()
+        states.append(sim._channel_bad["rescue_a"])
+    assert abs(sum(states) / len(states) - 0.3) < 0.03
+    bursts, run = [], 0
+    for bad in states:
+        if bad:
+            run += 1
+        elif run:
+            bursts.append(run)
+            run = 0
+    assert abs(sum(bursts) / len(bursts) - 10) < 1.5
+
+
+def test_cbba_is_conflict_free_without_loss_and_matches_iterative_auction_quality():
+    for seed in range(1000, 1008):
+        cfg = ScenarioConfig(seed=seed, width=20, height=20, victim_count=12, initial_resources=12, max_time=2000)
+        cbba = run_policy(cfg, "cbba", rescue_agent_count=4)
+        assert cbba.duplicate_conflicts == 0 and cbba.victims_rescued == 12
+        assert cbba.consensus_rounds > 0
+
+
+def test_cbba_degrades_to_duplicates_when_every_message_is_lost():
+    lossy = run_policy(demo_config(), "cbba", comm_loss=1.0)
+    assert lossy.duplicate_conflicts > 0 and lossy.victims_rescued == 6

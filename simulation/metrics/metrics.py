@@ -32,6 +32,7 @@ class RunResult:
     messages: int = 0
     message_payload: int = 0
     rescue_agents: int = 2
+    consensus_rounds: int = 0
 
     def severity_weighted_wait(self) -> float:
         """Mean waiting time weighted by severity score (critical=4 ... low=1),
@@ -56,6 +57,7 @@ class RunResult:
             "idle_ticks": self.idle_ticks,
             "messages": self.messages,
             "message_payload": self.message_payload,
+            "consensus_rounds": self.consensus_rounds,
         })
         return row
 

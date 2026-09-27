@@ -22,15 +22,16 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 STUDY = os.path.join(ROOT, "results", "study")
 FIG = os.path.join(ROOT, "paper", "figures")
 
-ORDER = ["no_coordination", "claim", "mas", "mas_iterative", "hungarian"]
+ORDER = ["no_coordination", "claim", "mas", "mas_iterative", "hungarian", "cbba"]
 LABEL = {"no_coordination": "Independent", "claim": "Claim-only", "mas": "Propose-resolve (1-round)",
-         "mas_iterative": "Iterative propose-resolve", "hungarian": "Centralized Hungarian"}
-SHORT = {"no_coordination": "IND", "claim": "CLM", "mas": "PR-1", "mas_iterative": "PR-k", "hungarian": "HUN"}
+         "mas_iterative": "Iterative propose-resolve", "hungarian": "Centralized Hungarian", "cbba": "CBBA"}
+SHORT = {"no_coordination": "IND", "claim": "CLM", "mas": "PR-1", "mas_iterative": "PR-k", "hungarian": "HUN",
+         "cbba": "CBBA"}
 # Validated categorical slots 1-5 (fixed order, never cycled); markers and
 # dashes are the secondary encoding so the figures survive grayscale print.
-COLOR = dict(zip(ORDER, ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4"]))
-MARKER = dict(zip(ORDER, ["o", "s", "^", "D", "v"]))
-DASH = dict(zip(ORDER, ["-", "--", "-", "-.", ":"]))
+COLOR = dict(zip(ORDER, ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300"]))
+MARKER = dict(zip(ORDER, ["o", "s", "^", "D", "v", "P"]))
+DASH = dict(zip(ORDER, ["-", "--", "-", "-.", ":", (0, (4, 1, 1, 1))]))
 
 plt.rcParams.update({
     "font.family": "serif", "font.serif": ["Times New Roman", "Times", "DejaVu Serif"],
@@ -93,7 +94,7 @@ def fig_scaling(e2):
         ax.set_xticks([1, 2, 3, 4, 6, 8])
     axes[0].set_ylabel("Completion time (sim. min)")
     handles, labels = axes[0].get_legend_handles_labels()
-    fig.legend(handles, labels, loc="upper center", ncol=6, frameon=False, bbox_to_anchor=(0.5, 1.10))
+    fig.legend(handles, labels, loc="upper center", ncol=7, frameon=False, bbox_to_anchor=(0.5, 1.10))
     fig.tight_layout(w_pad=1.0)
     fig.savefig(os.path.join(FIG, "fig_scaling.pdf"))
     plt.close(fig)
@@ -125,7 +126,7 @@ def fig_loss(e3, e2):
     gt = group(e3, ["comm_loss", "policy"], "completion_time")
     gd = group(e3, ["comm_loss", "policy"], "duplicate_conflicts")
     ps = sorted({k[0] for k in gt})
-    for p in ("claim", "mas", "mas_iterative"):
+    for p in ("claim", "mas", "mas_iterative", "cbba"):
         ys = [ci95(gt[(q, p)]) for q in ps]
         axes[0].errorbar(ps, [y[0] for y in ys], yerr=[y[1] for y in ys], color=COLOR[p], marker=MARKER[p],
                          linestyle=DASH[p], capsize=1.5, elinewidth=0.6, label=SHORT[p])
@@ -150,9 +151,38 @@ def fig_loss(e3, e2):
     plt.close(fig)
 
 
+def fig_dynamic(e5):
+    fig, axes = plt.subplots(1, 2, figsize=(3.5, 1.95))
+    g = group(e5, ["arrival_window", "policy"], "avg_waiting_time")
+    ws = sorted({k[0] for k in g})
+    for p in ORDER:
+        ys = [ci95(g[(w, p)]) for w in ws]
+        axes[0].errorbar(ws, [y[0] for y in ys], yerr=[y[1] for y in ys], color=COLOR[p], marker=MARKER[p],
+                         linestyle=DASH[p], capsize=1.5, elinewidth=0.6, label=SHORT[p])
+    eta = [100 * (statistics.fmean(g[(w, "claim")]) - statistics.fmean(g[(w, "mas")])) /
+           (statistics.fmean(g[(w, "no_coordination")]) - statistics.fmean(g[(w, "mas")])) for w in ws]
+    axes[1].plot(ws, eta, color="#3d3d3a", marker="o")
+    for w, e in zip(ws, eta):
+        axes[1].annotate(f"{e:.0f}%", (w, e), xytext=(0, 4), textcoords="offset points", ha="center", fontsize=6.5)
+    axes[0].set_title("(a) Mean victim wait")
+    axes[1].set_title("(b) Negotiation share $\\eta$")
+    axes[0].set_ylabel("Sim. minutes")
+    axes[1].set_ylabel("% of IND$\\rightarrow$PR-1 gain")
+    axes[1].set_ylim(0, 100)
+    for ax in axes:
+        ax.set_xlabel("Arrival window (min)")
+        ax.set_xticks(ws)
+    handles, labels = axes[0].get_legend_handles_labels()
+    fig.legend(handles, labels, loc="upper center", ncol=6, frameon=False, bbox_to_anchor=(0.5, 1.09),
+               handlelength=1.5, columnspacing=0.8, fontsize=6.5)
+    fig.tight_layout(w_pad=0.6)
+    fig.savefig(os.path.join(FIG, "fig_dynamic.pdf"))
+    plt.close(fig)
+
+
 def fig_e1(e1):
     fig, ax = plt.subplots(figsize=(3.5, 1.7))
-    width = 0.38
+    width = 0.36
     for j, bl in enumerate((0.0, 0.1)):
         g = group([r for r in e1 if r["blockage"] == bl], ["policy"], "completion_time")
         for i, p in enumerate(ORDER):
@@ -184,8 +214,9 @@ def fmt_p(p):
 
 
 def table_e1(e1, stats):
+    # b=0 only: 10% blockage changes no mean by more than 1.4 min (reported in the text).
     lines = []
-    for bl in (0.0, 0.1):
+    for bl in (0.0,):
         sub = [r for r in e1 if r["blockage"] == bl]
         for p in ORDER:
             rs = [r for r in sub if r["policy"] == p]
@@ -194,9 +225,7 @@ def table_e1(e1, stats):
             lines.append(
                 f"{int(bl * 100)}\\% & {SHORT[p]} & {f('completion_time'):.1f} & {f('avg_waiting_time'):.1f} & "
                 f"{f('weighted_wait'):.1f} & {statistics.fmean(crit):.1f} & {f('duplicate_conflicts'):.2f} & "
-                f"{f('wasted_ticks'):.1f} & {f('messages'):.1f} \\\\")
-        if bl == 0.0:
-            lines.append(r"\midrule")
+                f"{f('wasted_ticks'):.1f} & {f('message_payload'):.1f} \\\\")
     return "\n".join(lines)
 
 
@@ -225,15 +254,19 @@ def table_scaling(e2, stats):
             poa = T["no_coordination"] / T["hungarian"]
             gap1 = 100 * (T["mas"] - T["hungarian"]) / T["hungarian"]
             gapk = 100 * (T["mas_iterative"] - T["hungarian"]) / T["hungarian"]
+            gapc = 100 * (T["cbba"] - T["hungarian"]) / T["hungarian"]
+            sc = stats["E2"][f"N={int(n)}|M={int(m)}|completion_time|cbba->hungarian"]["p_holm"]
             neg = 100 * (T["claim"] - T["mas"]) / (T["no_coordination"] - T["mas"])
             s1 = stats["E2"][f"N={int(n)}|M={int(m)}|completion_time|mas->hungarian"]["p_holm"]
             sk = stats["E2"][f"N={int(n)}|M={int(m)}|completion_time|mas_iterative->hungarian"]["p_holm"]
             star = lambda p: "$^{*}$" if p < 0.05 else ""  # noqa: E731
             lines.append(
                 f"{int(m)} & {int(n)} & {T['no_coordination']:.0f} & {T['claim']:.0f} & {T['mas']:.0f} & "
-                f"{T['hungarian']:.0f} & {poa:.2f} & {gap1:+.1f}{star(s1)} & {gapk:+.1f}{star(sk)} & {neg:.0f} & "
+                f"{T['hungarian']:.0f} & {poa:.2f} & {gap1:+.1f}{star(s1)} & {gapk:+.1f}{star(sk)} & "
+                f"{gapc:+.1f}{star(sc)} & {neg:.0f} & "
                 f"{t1 / T['no_coordination']:.2f} & {t1 / T['mas']:.2f} & "
-                f"{statistics.fmean(gm[(m, n, 'mas')]):.0f}/{statistics.fmean(gm[(m, n, 'hungarian')]):.0f} \\\\")
+                f"{statistics.fmean(gm[(m, n, 'mas')]):.0f} & {statistics.fmean(gm[(m, n, 'hungarian')]):.0f} & "
+                f"{statistics.fmean(gm[(m, n, 'cbba')]):.0f} \\\\")
         if m != 30.0:
             lines.append(r"\midrule")
     return "\n".join(lines)
@@ -249,17 +282,49 @@ def table_blockage(e4):
     return "\n".join(lines)
 
 
+def table_dynamic(e5):
+    g = group(e5, ["arrival_window", "policy"], "avg_waiting_time")
+    gw = group(e5, ["arrival_window", "policy"], "weighted_wait")
+    gd = group(e5, ["arrival_window", "policy"], "duplicate_conflicts")
+    lines = []
+    for w in sorted({k[0] for k in g}):
+        cells = " & ".join(f"{statistics.fmean(g[(w, p)]):.1f}" for p in ORDER)
+        red = 100 * (1 - statistics.fmean(g[(w, "mas")]) / statistics.fmean(g[(w, "no_coordination")]))
+        lines.append(f"{int(w)} & {cells} & {red:.0f} & {statistics.fmean(gd[(w, 'claim')]):.1f} \\\\")
+    return "\n".join(lines)
+
+
+def table_bursty(e6, e3):
+    g = group(e6, ["comm_loss", "burst_length", "policy"], "completion_time")
+    g3 = group(e3, ["comm_loss", "policy"], "completion_time")
+    pols = ["claim", "mas", "mas_iterative", "cbba"]
+    lines = []
+    for loss in (0.1, 0.3, 0.5):
+        rows = [("Bern.", {p: statistics.fmean(g3[(loss, p)]) for p in pols})]
+        for burst in (1.0, 5.0, 20.0):
+            rows.append((f"{int(burst)}", {p: statistics.fmean(g[(loss, burst, p)]) for p in pols}))
+        for i, (lab, T) in enumerate(rows):
+            best = min(T.values())
+            cells = " & ".join((f"\\textbf{{{T[p]:.1f}}}" if abs(T[p] - best) < 0.05 else f"{T[p]:.1f}") for p in pols)
+            lines.append(f"{('%.1f' % loss) if i == 0 else ''} & {lab} & {cells} \\\\")
+        if loss != 0.5:
+            lines.append(r"\midrule")
+    return "\n".join(lines)
+
+
 def main() -> None:
     os.makedirs(FIG, exist_ok=True)
-    e1, e2, e3, e4 = (load(x) for x in ("E1", "E2", "E3", "E4"))
+    e1, e2, e3, e4, e5, e6 = (load(x) for x in ("E1", "E2", "E3", "E4", "E5", "E6"))
     with open(os.path.join(STUDY, "stats.json")) as f:
         stats = json.load(f)
     fig_scaling(e2)
     fig_waste(e2)
     fig_loss(e3, e2)
     fig_e1(e1)
+    fig_dynamic(e5)
     tables = {"tab_e1.tex": table_e1(e1, stats), "tab_e1_tests.tex": table_e1_tests(stats),
-              "tab_scaling.tex": table_scaling(e2, stats), "tab_blockage.tex": table_blockage(e4)}
+              "tab_scaling.tex": table_scaling(e2, stats), "tab_blockage.tex": table_blockage(e4),
+              "tab_dynamic.tex": table_dynamic(e5), "tab_bursty.tex": table_bursty(e6, e3)}
     tab_dir = os.path.join(ROOT, "paper", "tables")
     os.makedirs(tab_dir, exist_ok=True)
     for name, body in tables.items():

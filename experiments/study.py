@@ -10,6 +10,8 @@ run once per task-allocation protocol so every comparison is paired:
   E3 comm_loss      -- broadcast-loss probability p for the message-based
                         protocols (N=4, M=20)
   E4 blockage       -- fraction of road cells that block mid-run (N=4, M=20)
+  E5 arrivals       -- victims appear over a window instead of at t=0 (N=4, M=20)
+  E6 bursty         -- Gilbert-Elliott (bursty) loss: mean loss x burst length
 
 Writes one CSV of raw runs per experiment to results/study/ plus
 results/study/stats.json (paired tests, CIs). Run:
@@ -40,10 +42,11 @@ MAX_TIME = 3000  # safety cap only: every run in a valid world ends when all vic
 BLOCKAGE_HORIZON = 300  # blockages start within the first 120 min and last 10-75 min (repo default)
 
 
-def _config(seed: int, victims: int, width: int, blockage: float) -> ScenarioConfig:
+def _config(seed: int, victims: int, width: int, blockage: float, arrival: int = 0) -> ScenarioConfig:
     return ScenarioConfig(seed=seed, width=width, height=width, victim_count=victims,
                           severity_sequence=None, blockage_level=blockage,
-                          initial_resources=victims, max_time=MAX_TIME, blockage_horizon=BLOCKAGE_HORIZON)
+                          initial_resources=victims, max_time=MAX_TIME, blockage_horizon=BLOCKAGE_HORIZON,
+                          arrival_window=arrival)
 
 
 def valid_world(seed: int, victims: int, width: int) -> bool:
@@ -72,10 +75,13 @@ def seeds_for(count: int, victims: int, width: int) -> list[int]:
 
 
 def _job(args: tuple) -> dict:
-    exp, seed, policy, n, m, width, blockage, loss = args
-    res = run_policy(_config(seed, m, width, blockage), policy, rescue_agent_count=n, comm_loss=loss)
+    exp, seed, policy, n, m, width, blockage, loss = args[:8]
+    arrival, burst = (args[8], args[9]) if len(args) > 8 else (0, None)
+    res = run_policy(_config(seed, m, width, blockage, arrival), policy, rescue_agent_count=n,
+                     comm_loss=loss, burst_length=burst)
     row = res.to_extended_row()
-    row.update({"experiment": exp, "victims": m, "grid": width, "blockage": blockage, "comm_loss": loss})
+    row.update({"experiment": exp, "victims": m, "grid": width, "blockage": blockage, "comm_loss": loss,
+                "arrival_window": arrival, "burst_length": burst if burst is not None else 0})
     return row
 
 
@@ -94,12 +100,21 @@ def build_jobs(seeds: int, e1_seeds: int = 1000) -> list[tuple]:
                     jobs.append(("E2", s, p, n, m, 20, 0.0, 0.0))
     for loss in (0.0, 0.05, 0.1, 0.2, 0.3, 0.5, 0.7, 1.0):
         for s in seeds_for(seeds, 20, 20):
-            for p in ("claim", "mas", "mas_iterative"):
+            for p in ("claim", "mas", "mas_iterative", "cbba"):
                 jobs.append(("E3", s, p, 4, 20, 20, 0.0, loss))
     for bl in (0.0, 0.1, 0.2, 0.3):
         for s in seeds_for(seeds, 20, 20):
             for p in POLICIES:
                 jobs.append(("E4", s, p, 4, 20, 20, bl, 0.0))
+    for window in (0, 100, 200, 400):
+        for s in seeds_for(seeds, 20, 20):
+            for p in POLICIES:
+                jobs.append(("E5", s, p, 4, 20, 20, 0.0, 0.0, window, None))
+    for loss in (0.1, 0.3, 0.5):
+        for burst in (1, 5, 20):
+            for s in seeds_for(seeds, 20, 20):
+                for p in ("claim", "mas", "mas_iterative", "cbba"):
+                    jobs.append(("E6", s, p, 4, 20, 20, 0.0, loss, 0, burst))
     return jobs
 
 
@@ -175,7 +190,7 @@ def _paired(rows, key, base_where, treat_where):
 
 
 def compute_stats(rows: list[dict]) -> dict:
-    out: dict = {"E1": {}, "E2": {}, "E4": {}}
+    out: dict = {"E1": {}, "E2": {}, "E4": {}, "E5": {}, "E6": {}}
     e1 = [r for r in rows if r["experiment"] == "E1"]
     comparisons = [("no_coordination", "claim"), ("claim", "mas"), ("no_coordination", "mas"),
                    ("mas", "mas_iterative"), ("mas", "hungarian"), ("mas_iterative", "hungarian")]
@@ -194,7 +209,8 @@ def compute_stats(rows: list[dict]) -> dict:
     pvals = {}
     for n in (2, 3, 4, 6, 8):
         for m in (10, 20, 30):
-            for base, treat in (("no_coordination", "mas"), ("mas", "hungarian"), ("mas_iterative", "hungarian")):
+            for base, treat in (("no_coordination", "mas"), ("mas", "hungarian"), ("mas_iterative", "hungarian"),
+                                ("cbba", "hungarian")):
                 key = f"N={n}|M={m}|completion_time|{base}->{treat}"
                 res = _paired(e2, "completion_time", {"policy": base, "rescue_agents": n, "victims": m},
                               {"policy": treat, "rescue_agents": n, "victims": m})
@@ -202,6 +218,32 @@ def compute_stats(rows: list[dict]) -> dict:
                 pvals[key] = res["p_value"]
     for k, p in holm(pvals).items():
         out["E2"][k]["p_holm"] = p
+
+    e5 = [r for r in rows if r["experiment"] == "E5"]
+    pvals = {}
+    for w in (0, 100, 200, 400):
+        for metric in ("avg_waiting_time", "weighted_wait"):
+            for base, treat in (("no_coordination", "claim"), ("claim", "mas"), ("no_coordination", "mas"),
+                                ("mas", "mas_iterative"), ("mas_iterative", "cbba"), ("mas_iterative", "hungarian")):
+                key = f"W={w}|{metric}|{base}->{treat}"
+                res = _paired(e5, metric, {"policy": base, "arrival_window": w}, {"policy": treat, "arrival_window": w})
+                out["E5"][key] = res
+                pvals[key] = res["p_value"]
+    for k, p in holm(pvals).items():
+        out["E5"][k]["p_holm"] = p
+
+    e6 = [r for r in rows if r["experiment"] == "E6"]
+    pvals = {}
+    for loss in (0.1, 0.3, 0.5):
+        for burst in (1, 5, 20):
+            for base, treat in (("mas", "mas_iterative"), ("mas_iterative", "cbba"), ("claim", "mas")):
+                key = f"p={loss}|L={burst}|completion_time|{base}->{treat}"
+                res = _paired(e6, "completion_time", {"policy": base, "comm_loss": loss, "burst_length": burst},
+                              {"policy": treat, "comm_loss": loss, "burst_length": burst})
+                out["E6"][key] = res
+                pvals[key] = res["p_value"]
+    for k, p in holm(pvals).items():
+        out["E6"][k]["p_holm"] = p
     return out
 
 
@@ -220,7 +262,7 @@ def main() -> None:
         rows = pool.map(_job, jobs, chunksize=16)
     elapsed = time.time() - t0
 
-    for exp in ("E1", "E2", "E3", "E4"):
+    for exp in ("E1", "E2", "E3", "E4", "E5", "E6"):
         sub = [r for r in rows if r["experiment"] == exp]
         with open(os.path.join(OUT_DIR, f"{exp}_runs.csv"), "w", newline="") as f:
             w = csv.DictWriter(f, fieldnames=list(sub[0].keys()))
