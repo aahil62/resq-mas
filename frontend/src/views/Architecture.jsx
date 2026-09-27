@@ -1,3 +1,5 @@
+import { PROTOCOLS } from '../protocols.js'
+
 const SECTION_STYLE = { padding: 14, display: 'flex', flexDirection: 'column', gap: 6 }
 const PRE = { background: 'var(--panel-2)', padding: 8, borderRadius: 4, overflowX: 'auto' }
 
@@ -6,11 +8,12 @@ export default function Architecture() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 1100 }}>
       <Section title="The Core Idea">
         <p>
-          Two rescue agents operate in the same disaster area. Several victims are attractive targets for
-          <b> both</b> agents — similar priority, similar distance. <b>Without coordination</b>, both agents can
-          independently pick the same victim, wasting effort. <b>With coordination</b>, the agents exchange their
-          intended targets before committing, detect the duplicate, resolve it, and divide the work — rescuing
-          different victims in parallel.
+          Several rescue agents serve the same disaster area. Many victims are attractive to <b>several</b> agents at
+          once: similar priority, similar distance. <b>Without coordination</b>, agents independently pick the same
+          victim and waste trips; with more agents, the waste grows until adding units barely helps. <b>With
+          coordination</b>, agents exchange information before committing and divide the work. The question the
+          paper answers is <i>how much</i> communication that takes: three coordinated agents finish faster than
+          eight independent ones.
         </p>
       </Section>
 
@@ -21,60 +24,74 @@ export default function Architecture() {
 
       <Section title="Agent Roles">
         <ul>
-          <li><b>Medical Agent</b> — assigns each victim a priority from severity (critical=4, high=3,
-            moderate=2, low=1), republished as waiting time accrues. A simple, transparent rule — no learned
-            model.</li>
-          <li><b>Logistics Agent</b> — sole owner of a small, finite pool of medical kits. Answers one question:
-            "is this rescue feasible with what's left?" Never lets the pool go negative or double-allocate a
-            kit to the same victim.</li>
-          <li><b>Rescue Agent A / Rescue Agent B</b> — two instances of the same class. Each evaluates
-            candidate victims, selects a target, uses BFS to reach it, and rescues it. The <i>only</i> thing
-            that differs between the two simulation modes is what happens between "evaluate" and "commit."</li>
+          <li><b>Medical Agent</b>: registers each victim when it is reported (at t=0, or over time when an arrival
+            window is set) and assigns a priority from severity (critical=4, high=3, moderate=2, low=1), which rises
+            by 0.1 per minute of waiting. A simple, transparent rule, not a learned model.</li>
+          <li><b>Logistics Agent</b>: sole owner of the pool of medical kits. It never lets the pool go negative and
+            never gives two kits for the same victim.</li>
+          <li><b>Rescue Agents 1…N</b> (up to 8): identical instances of one class. Each scores reachable victims by
+            <span className="mono"> utility = priority − 0.1 × BFS distance</span>, commits to a target, drives there,
+            and delivers the victim to the hospital. The <i>only</i> thing that changes between protocols is what
+            happens between "score" and "commit".</li>
         </ul>
       </Section>
 
-      <Section title="No Coordination vs. Multi-Agent Coordination">
-        <p><b>No Coordination:</b> each rescue agent scores every victim by priority and distance, and commits
-          to its best candidate immediately — without knowing what the other agent is about to choose. If both
-          agents' best candidate is the same victim, both commit to it. One of them finds it already rescued
-          when it arrives, and has wasted a trip.</p>
-        <p><b>MAS:</b> before committing, both agents publish their intended target. If the same victim was
-          proposed by both, a deterministic conflict-resolution rule (highest utility wins, ties broken by
-          distance then agent id) picks one winner. The loser immediately re-evaluates and picks its next-best
-          target instead — no wasted trip, and both agents make progress in parallel.</p>
-        <pre style={PRE}>{`No Coordination                       MAS
-----------------                      ---
+      <Section title="The Communication Ladder: Six Protocols">
+        <p style={{ margin: 0 }}>Ordered from least to most information exchanged before an agent commits. All six share the
+          same environment, agents, routing and metrics, so any difference comes from the protocol alone.</p>
+        <table>
+          <thead><tr><th>Protocol</th><th>What is exchanged</th></tr></thead>
+          <tbody>
+            {PROTOCOLS.map((p) => (
+              <tr key={p.id}>
+                <td style={{ whiteSpace: 'nowrap' }}>
+                  <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 2, background: p.color, marginRight: 6 }} />
+                  <b>{p.short}</b> <span style={{ color: 'var(--text-dim)' }}>{p.label}</span>
+                </td>
+                <td style={{ color: 'var(--text-dim)' }}>{p.desc}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <pre style={PRE}>{`Independent (IND)                     Propose-resolve (PR-1)
+-----------------                     ----------------------
 A selects V1                          A proposes V1
 B selects V1                          B proposes V1
-(both move toward V1)                 conflict detected -> A keeps V1
-duplicate detected during execution   B reassigned -> B proposes V2
-                                       A -> V1,  B -> V2  (parallel)`}</pre>
+(both drive toward V1)                conflict: highest utility wins -> A keeps V1
+one arrives to find nothing           B proposes V2 next minute (PR-k: same minute)
+                                      A -> V1,  B -> V2  (parallel)`}</pre>
+      </Section>
+
+      <Section title="Realism Knobs">
+        <ul>
+          <li><b>Victims arriving over time</b>: with an arrival window, each victim appears at a random minute; nobody
+            knows about it until then, and its waiting time starts at that moment.</li>
+          <li><b>Unreliable radio</b>: every broadcast (proposal, bundle or claim) can be lost. <i>Independent</i> loss
+            drops each message at random; <i>bursty</i> loss puts an agent's radio into outages lasting several minutes,
+            during which everything it sends is lost. A lost proposal becomes a unilateral commitment, so duplicates
+            return as the link degrades.</li>
+          <li><b>Road blockages</b>: a share of road cells blocks and reopens mid-run, forcing BFS replanning.</li>
+        </ul>
       </Section>
 
       <Section title="Why BFS">
-        <p>
-          BFS and coordination answer two different questions, on purpose kept in separate modules:
-        </p>
-        <p><b>BFS</b> answers: <i>"How does a rescue agent reach its assigned victim?"</i> — a shortest-path
-          search over a grid with uniform movement cost, re-run whenever a known route becomes blocked.</p>
-        <p><b>Task allocation</b> answers: <i>"Which rescue agent should handle which victim, given what the
-          other agent is doing?"</i> — this is the coordination problem the project is actually about. BFS is
-          intentionally the only search algorithm in the project; the intellectual content is the coordination
-          mechanism, not the pathfinding.</p>
+        <p><b>BFS</b> answers: <i>"How does a rescue agent reach its victim?"</i> It is a shortest-path search on a grid
+          with uniform movement cost, re-run whenever a known route becomes blocked.</p>
+        <p><b>Task allocation</b> answers: <i>"Which agent should handle which victim, given what the others are doing?"</i>
+          That is the coordination problem this project is about. The two are kept in separate modules on purpose.</p>
       </Section>
 
       <Section title="Metrics">
         <ul>
-          <li><b>Completion time (minutes)</b> — how long until every victim is rescued.</li>
-          <li><b>Average waiting time (minutes)</b> — mean time victims spent waiting to be rescued.</li>
-          <li><b>Duplicate / conflicting target assignments</b> — how many times two agents were genuinely,
-            simultaneously committed to the same victim. This is the metric that most directly demonstrates
-            the point of the project, and is expected to be at or near zero under MAS.</li>
+          <li><b>Completion time</b>: minute the last victim reaches the hospital.</li>
+          <li><b>Victim wait</b> (plain, severity-weighted, and for critical victims): minutes from a victim being reported to its delivery.</li>
+          <li><b>Duplicate conflicts</b>: times two agents were simultaneously committed to the same victim.</li>
+          <li><b>Wasted / idle agent-minutes</b>: time spent on targets later abandoned, and time spent with nothing to do.</li>
+          <li><b>Messages and data sent</b>: the communication cost of each protocol.</li>
         </ul>
         <p style={{ color: 'var(--text-dim)', fontSize: 12 }}>
-          <b>Modeling assumption:</b> one simulation timestep represents one minute of simulated
-          disaster-response operation (t=115 means 115 simulated minutes). These are simulated minutes
-          produced by the model, not real-world measured rescue times.
+          <b>Modeling assumption:</b> one simulation timestep represents one minute of simulated disaster-response
+          operation. These are simulated minutes produced by the model, not real-world measured rescue times.
         </p>
       </Section>
     </div>
@@ -141,11 +158,11 @@ function ArchitectureDiagram() {
       {line(130, 280, 130, 300)}
       {line(510, 280, 510, 300)}
 
-      {box(30, 300, 200, 54, 'Rescue Agent A')}
-      {box(410, 300, 200, 54, 'Rescue Agent B')}
+      {box(30, 300, 200, 54, 'Rescue Agent 1', 'scores victims, commits')}
+      {box(410, 300, 200, 54, 'Rescue Agent N', 'up to 8 agents')}
 
       {line(230, 327, 410, 327, true)}
-      <text x="320" y="322" textAnchor="middle" fontFamily="var(--font-display)" fontSize="10" fill="var(--text-dim)">communication</text>
+      <text x="320" y="322" textAnchor="middle" fontFamily="var(--font-display)" fontSize="10" fill="var(--text-dim)">radio (may be lossy)</text>
 
       {line(130, 354, 130, 390)}
       {line(510, 354, 510, 390)}
@@ -153,7 +170,7 @@ function ArchitectureDiagram() {
       {line(510, 390, 320, 390)}
       {line(320, 390, 320, 410)}
 
-      {box(210, 410, 220, 44, 'TASK ALLOCATION')}
+      {box(170, 410, 300, 44, 'ALLOCATION PROTOCOL', 'IND · CLM · PR-1 · PR-k · HUN · CBBA')}
       {line(320, 454, 320, 480)}
       {box(210, 480, 220, 40, 'BFS')}
       {line(320, 520, 320, 540)}

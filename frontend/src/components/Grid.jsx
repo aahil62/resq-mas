@@ -1,4 +1,5 @@
-const CELL = 32
+import { unitColor, unitLetter } from '../protocols.js'
+
 
 const CELL_COLOR = {
   road: 'var(--c-road)',
@@ -14,19 +15,16 @@ const SEV_COLOR = {
   low: 'var(--sev-low)',
 }
 
-const UNIT_COLOR = {
-  rescue_a: '#e0af68',
-  rescue_b: '#bb9af7',
-}
-
 export default function Grid({ state }) {
   if (!state) return null
   const { width, height, cells } = state.grid
+  const CELL = width > 20 ? 24 : width > 15 ? 28 : 32
+  const showRadio = state.policy !== 'no_coordination' && state.settings?.comm_loss > 0
   const blocked = new Set(state.blocked_cells.map(([r, c]) => `${r},${c}`))
 
   const victimsByCell = new Map()
   for (const v of state.victims) {
-    if (v.status === 'rescued') continue
+    if (v.status === 'rescued' || v.appeared === false) continue  // not yet reported: unknown to every agent
     victimsByCell.set(`${v.position[0]},${v.position[1]}`, v)
   }
 
@@ -85,19 +83,20 @@ export default function Grid({ state }) {
           {units && units.map((u, i) => (
             <div
               key={u.id}
-              title={`${u.id} ${u.status}${u.target ? ' -> ' + u.target : ''}`}
+              title={`${u.id} ${u.status}${u.target ? ' -> ' + u.target : ''}${showRadio && !u.channel_ok ? ' [radio outage]' : ''}`}
               style={{
                 position: 'absolute',
                 inset: 2,
                 transform: units.length > 1 ? `translate(${i * 5 - 2.5}px, ${i * -5 + 2.5}px)` : undefined,
-                background: UNIT_COLOR[u.id] || '#e0af68',
+                background: unitColor(u.id),
                 borderRadius: 4,
+                boxShadow: showRadio && !u.channel_ok ? '0 0 0 2px var(--bad)' : 'none',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, color: 'var(--bg)',
+                fontFamily: 'var(--font-mono)', fontSize: CELL > 26 ? 11 : 9, fontWeight: 700, color: 'var(--bg)',
                 zIndex: 2,
               }}
             >
-              {u.id === 'rescue_a' ? 'A' : u.id === 'rescue_b' ? 'B' : u.id.slice(-1).toUpperCase()}
+              {unitLetter(u.id)}
             </div>
           ))}
         </div>,

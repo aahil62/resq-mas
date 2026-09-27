@@ -13,7 +13,8 @@ def create_scenario(req: ScenarioRequest) -> dict:
     params = ScenarioParams(
         policy=req.policy, seed=req.seed, victim_count=req.victim_count, blockage_level=req.blockage_level,
         rescue_agent_count=req.rescue_agent_count, initial_resources=resources, max_time=req.max_time,
-        width=req.width, height=req.height,
+        width=req.width, height=req.height, arrival_window=req.arrival_window, comm_loss=req.comm_loss,
+        burst_length=req.burst_length,
     )
     return SESSION.create(params)
 

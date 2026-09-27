@@ -103,17 +103,18 @@ npm run dev
 
 Open `http://localhost:5173`.
 
-- **Live Simulation** — drives the actual Python engine tick-by-tick.
-  Toggle between "NO COORDINATION" and "MULTI-AGENT", hit Run, and watch
-  Rescue A and Rescue B either duplicate effort or divide the work. The
-  event log shows exactly what the brief asks for: `TARGET_SELECTED` /
-  `DUPLICATE_DETECTED` under No Coordination, `TASK_PROPOSED` /
-  `TASK_CONFLICT` / `TASK_ASSIGNED` / `TASK_REASSIGNED` under MAS.
-- **Comparison** — "Effect of Multi-Agent Coordination": the 3-metric
-  table and 3 charts, read from `results/` (produced by
-  `experiments.runner`, above).
-- **Architecture** — the system diagram and the No-Coordination-vs-MAS /
-  BFS-vs-coordination explanation.
+- **Live Simulation** — drives the actual Python engine tick-by-tick. Pick any
+  of the six protocols (IND, CLM, PR-1, PR-k, HUN, CBBA), up to 8 agents,
+  victims arriving over time, and independent or bursty radio loss; presets
+  reproduce the paper's key situations (classic duplicate, crowded incident,
+  victims arriving, bad radio). Agents in a radio outage are ringed in red.
+  "Compare all protocols" runs all six on the same world side by side.
+- **Results** — the paper's findings from the 43,350-run study
+  (`results/study/`, produced by `python -m experiments.study`): headline
+  numbers, the two-agent table, and interactive charts for scaling, victim
+  arrivals, message loss, and communication cost (hover for values and 95%
+  CIs). "Run your own experiment" launches fresh paired runs on the server.
+- **Architecture** — the system diagram and the six-protocol ladder.
 
 ## Notes on reproducibility
 

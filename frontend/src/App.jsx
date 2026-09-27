@@ -5,7 +5,7 @@ import Architecture from './views/Architecture.jsx'
 
 const TABS = [
   { id: 'live', label: 'Live Simulation', view: LiveSimulation },
-  { id: 'comparison', label: 'Comparison', view: Comparison },
+  { id: 'comparison', label: 'Results', view: Comparison },
   { id: 'architecture', label: 'Architecture', view: Architecture },
 ]
 

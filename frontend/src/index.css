@@ -186,3 +186,18 @@ th {
   0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(41, 224, 201, 0.5); }
   50% { opacity: 0.55; box-shadow: 0 0 0 3px rgba(41, 224, 201, 0); }
 }
+
+/* Chart tooltip (Results view) */
+.chart-tip {
+  position: absolute;
+  top: 8px;
+  min-width: 190px;
+  pointer-events: none;
+  background: var(--panel-2);
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 11px;
+  z-index: 5;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+}

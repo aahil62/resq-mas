@@ -21,6 +21,7 @@ export const api = {
   getState: () => request('GET', '/api/simulation/state'),
   getEvents: (since = 0, limit = 200) => request('GET', `/api/simulation/events?since=${since}&limit=${limit}`),
   runExperiment: (params) => request('POST', '/api/experiments/run', params),
+  study: () => request('GET', '/api/experiments/study'),
   precomputedMeta: () => request('GET', '/api/experiments/precomputed/meta'),
   precomputedSummary: () => request('GET', '/api/experiments/precomputed/summary'),
   precomputedTable: (name) => request('GET', `/api/experiments/precomputed/${name}`),
