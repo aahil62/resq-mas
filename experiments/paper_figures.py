@@ -34,7 +34,10 @@ MARKER = dict(zip(ORDER, ["o", "s", "^", "D", "v", "P"]))
 DASH = dict(zip(ORDER, ["-", "--", "-", "-.", ":", (0, (4, 1, 1, 1))]))
 
 plt.rcParams.update({
-    "font.family": "serif", "font.serif": ["Times New Roman", "Times", "DejaVu Serif"],
+    # IEEE PDF eXpress rejects Type 3 fonts: embed TrueType (Type 42) instead,
+    # in a Times-metric face so figure text matches the paper body.
+    "pdf.fonttype": 42, "ps.fonttype": 42, "mathtext.fontset": "stix",
+    "font.family": "serif", "font.serif": ["Times New Roman", "Liberation Serif", "TeX Gyre Termes", "DejaVu Serif"],
     "font.size": 8, "axes.titlesize": 8.5, "axes.labelsize": 8, "legend.fontsize": 7,
     "xtick.labelsize": 7, "ytick.labelsize": 7, "axes.linewidth": 0.6,
     "axes.spines.top": False, "axes.spines.right": False, "axes.grid": True,
