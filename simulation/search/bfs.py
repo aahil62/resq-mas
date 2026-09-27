@@ -100,3 +100,25 @@ def _reconstruct(parent: dict[Position, Position], start: Position, goal: Positi
         path.append(node)
     path.reverse()
     return path
+
+
+def bfs_distances(grid: GridSpec, start: Position) -> dict[Position, int]:
+    """Single-source BFS: shortest step count from `start` to every
+    reachable cell. Equivalent to calling bfs() once per goal and reading
+    path_length (same traversability rules, including a blocked start
+    reaching only itself), but costs one flood fill instead of one per
+    candidate -- this is what target evaluation uses to score all victims."""
+    dist = {start: 0}
+    if not grid.is_traversable(start):
+        return dist
+    queue: deque[Position] = deque([start])
+    while queue:
+        cr, cc = current = queue.popleft()
+        d = dist[current] + 1
+        for dr, dc in _NEIGHBOR_DELTAS:
+            nxt = (cr + dr, cc + dc)
+            if nxt in dist or not grid.is_traversable(nxt):
+                continue
+            dist[nxt] = d
+            queue.append(nxt)
+    return dist

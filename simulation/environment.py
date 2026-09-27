@@ -121,6 +121,10 @@ class ScenarioConfig:
     blockage_level: float = 0.0  # fraction of road cells that get blocked at some point
     initial_resources: int = 6
     max_time: int = 300
+    # Window (in ticks) over which blockages are scheduled; None keeps the
+    # original behaviour of scaling it with max_time. Pinning it lets a long
+    # safety cap on max_time coexist with blockages that land mid-run.
+    blockage_horizon: int | None = None
 
 
 def _carve_grid(rng: random.Random, width: int, height: int) -> tuple[list[list[CellType]], Position, list[Position]]:
@@ -195,9 +199,10 @@ def generate_scenario(config: ScenarioConfig) -> tuple[list[list[CellType]], Pos
     blockable = [c for c in road_cells if c not in used]
     n_block = int(config.blockage_level * len(blockable))
     events: list[ScheduledEvent] = []
+    horizon = config.blockage_horizon if config.blockage_horizon is not None else config.max_time
     for cell in blockable[:n_block]:
-        block_t = rng.randint(1, max(1, int(config.max_time * 0.4)))
-        duration = rng.randint(10, max(11, config.max_time // 4))
+        block_t = rng.randint(1, max(1, int(horizon * 0.4)))
+        duration = rng.randint(10, max(11, horizon // 4))
         events.append(ScheduledEvent(timestep=block_t, kind="block", payload={"cell": cell}))
         events.append(ScheduledEvent(timestep=block_t + duration, kind="unblock", payload={"cell": cell}))
 

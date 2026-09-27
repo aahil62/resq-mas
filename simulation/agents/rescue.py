@@ -28,7 +28,7 @@ from simulation.coordination.messages import Event, EventType
 from simulation.coordination.shared_state import SharedState
 from simulation.coordination.task_allocation import Proposal, UtilityWeights, compute_utility
 from simulation.environment import VictimStatus
-from simulation.search.bfs import GridSpec, Position, bfs
+from simulation.search.bfs import GridSpec, Position, bfs, bfs_distances
 
 RESOURCE_RETRY_INTERVAL = 5
 RESOURCE_WAIT_TIMEOUT = 40  # ticks a unit will wait for a denied resource before abandoning the target
@@ -64,6 +64,8 @@ class RescueAgent(Agent):
         self._last_request_tick = -RESOURCE_RETRY_INTERVAL
         self._resource_wait_start = 0
         self.pending_proposal: Proposal | None = None
+        self._commit_tick = 0
+        self.wasted_ticks = 0  # ticks spent committed to targets this agent later abandoned
 
     # -- Agent interface --------------------------------------------------
     def observe(self, environment) -> None:
@@ -88,29 +90,11 @@ class RescueAgent(Agent):
         if self.status != "idle":
             return
 
-        candidates = (shared_state.unassigned_known_victims() if self.coordinate
-                      else shared_state.not_yet_rescued_known_victims())
-        if not candidates:
+        ranked = self.rank_candidates(shared_state)
+        if not ranked:
             return
 
-        grid = self._grid_spec(shared_state)
-        best_kv = None
-        best_distance = None
-        best_utility = float("-inf")
-
-        for kv in candidates:
-            result = bfs(grid, self.position, kv.position)
-            if not result.found:
-                continue
-            utility = compute_utility(kv.priority, result.path_length, self.weights)
-            if utility > best_utility:
-                best_utility = utility
-                best_kv = kv
-                best_distance = result.path_length
-
-        if best_kv is None:
-            return
-
+        best_kv, best_distance, best_utility = ranked[0]
         proposal = Proposal(agent_id=self.agent_id, victim_id=best_kv.victim_id, utility=best_utility,
                              travel_distance=best_distance, timestamp=self.timestamp)
         self.pending_proposal = proposal
@@ -121,6 +105,27 @@ class RescueAgent(Agent):
         ))
         shared_state.set_agent_status(self.agent_id, position=self.position, status=self.status,
                                        target=best_kv.victim_id)
+
+    def rank_candidates(self, shared_state: SharedState, exclude: set[str] | frozenset[str] = frozenset()
+                        ) -> list[tuple]:
+        """Every reachable candidate as (known_victim, travel_distance,
+        utility), best first. Ties keep blackboard order (stable sort), so
+        ranked[0] is exactly the target the single-proposal protocol picks.
+        `exclude` lets multi-round protocols drop victims already won by
+        another agent earlier in the same tick."""
+        candidates = (shared_state.unassigned_known_victims(viewer=self.agent_id) if self.coordinate
+                      else shared_state.not_yet_rescued_known_victims())
+        dist = bfs_distances(self._grid_spec(shared_state), self.position)
+        scored = []
+        for kv in candidates:
+            if kv.victim_id in exclude:
+                continue
+            d = dist.get(tuple(kv.position))
+            if d is None:
+                continue
+            scored.append((kv, d, compute_utility(kv.priority, d, self.weights)))
+        scored.sort(key=lambda x: -x[2])
+        return scored
 
     def receive_assignment(self, shared_state: SharedState, victim_id: str | None, environment=None) -> None:
         """Called by the orchestrator once, after every rescue agent's
@@ -136,6 +141,7 @@ class RescueAgent(Agent):
 
         self.status = "moving_to_victim"
         self.current_target = victim_id
+        self._commit_tick = self.timestamp
         self.resource_state = "none"
         self._resource_wait_start = self.timestamp
         if environment is not None:
@@ -281,14 +287,20 @@ class RescueAgent(Agent):
             timestamp=self.timestamp, source=self.agent_id, type=EventType.TASK_REASSIGNED,
             payload={"agent_id": self.agent_id, "victim_id": victim_id, "reason": reason},
         ))
-        shared_state.assignments.pop(victim_id, None)
-        kv = shared_state.known_victims.get(victim_id)
-        if kv and kv.status != "rescued":
-            kv.status = "detected"
-            kv.assigned_agent = None
+        self.wasted_ticks += self.timestamp - self._commit_tick + 1
+        # Release only a claim this agent itself holds: after a lost
+        # message two agents can be committed to one victim, and the
+        # loser giving up must not erase the winner's claim.
+        if shared_state.assignments.get(victim_id) == self.agent_id:
+            shared_state.assignments.pop(victim_id, None)
+            shared_state.hidden_claims.discard(victim_id)
+            kv = shared_state.known_victims.get(victim_id)
+            if kv and kv.status != "rescued":
+                kv.status = "detected"
+                kv.assigned_agent = None
         if environment is not None and victim_id in environment.victims:
             v = environment.victims[victim_id]
-            if v.status != VictimStatus.RESCUED:
+            if v.status == VictimStatus.ASSIGNED and victim_id not in shared_state.assignments:
                 v.status = VictimStatus.DETECTED
         self.status = "idle"
         self.current_target = None

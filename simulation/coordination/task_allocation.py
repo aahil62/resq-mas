@@ -81,3 +81,24 @@ def resolve_conflicts(proposals: list[Proposal]) -> ConflictResolution:
             result.rejected.append({"agent_id": loser.agent_id, "victim_id": victim_id, "reason": "lost_conflict"})
 
     return result
+
+
+def optimal_assignment(rows: dict[str, dict[str, tuple[float, float]]]) -> dict[str, str]:
+    """Centralized reference allocator: match agents to distinct victims so
+    that total utility is maximal (Hungarian method via SciPy).
+
+    `rows` maps agent_id -> {victim_id: (utility, travel_distance)} over the
+    victims that agent can reach. Returns agent_id -> victim_id; with more
+    agents than victims the surplus agents are left unmatched. Unreachable
+    pairs get a prohibitive cost so they are never chosen.
+    """
+    from scipy.optimize import linear_sum_assignment
+
+    agents = sorted(rows)
+    victims = sorted({v for r in rows.values() for v in r})
+    if not agents or not victims:
+        return {}
+    big = 1e9
+    cost = [[-rows[a][v][0] if v in rows[a] else big for v in victims] for a in agents]
+    r_idx, c_idx = linear_sum_assignment(cost)
+    return {agents[r]: victims[c] for r, c in zip(r_idx, c_idx) if cost[r][c] < big}
