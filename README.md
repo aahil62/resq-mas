@@ -103,18 +103,25 @@ npm run dev
 
 Open `http://localhost:5173`.
 
-- **Live Simulation** — drives the actual Python engine tick-by-tick. Pick any
-  of the six protocols (IND, CLM, PR-1, PR-k, HUN, CBBA), up to 8 agents,
-  victims arriving over time, and independent or bursty radio loss; presets
-  reproduce the paper's key situations (classic duplicate, crowded incident,
-  victims arriving, bad radio). Agents in a radio outage are ringed in red.
-  "Compare all protocols" runs all six on the same world side by side.
-- **Results** — the paper's findings from the 43,350-run study
-  (`results/study/`, produced by `python -m experiments.study`): headline
-  numbers, the two-agent table, and interactive charts for scaling, victim
-  arrivals, message loss, and communication cost (hover for values and 95%
-  CIs). "Run your own experiment" launches fresh paired runs on the server.
-- **Architecture** — the system diagram and the six-protocol ladder.
+- **Home** — the thesis ("three rescue teams that talk beat eight that
+  don't"), a live side-by-side replay of the same disaster under "No talking"
+  and "Negotiate" (115 vs 60 simulated minutes), the key findings, the three
+  agent roles, the six strategies, and one-click scenarios.
+- **Simulator** — pick a situation and one of the six strategies (plain names
+  with the paper's codes: IND, CLM, PR-1, PR-k, HUN, CBBA), then play, step or
+  skip to the end. "More settings" adds casualties arriving over time, lost
+  radio messages or outages, blocked roads, up to 8 teams and bigger cities.
+  A plain-language radio log explains every decision, and "Compare all six"
+  runs every strategy on the same disaster.
+- **Results** — the paper's 43,350-run study (`results/study/`): headline
+  numbers, the two-team table, interactive charts (hover for values and 95%
+  CIs), and "Run your own experiment" for fresh paired runs on the server.
+- **How it works** — the agent diagram, one simulated minute step by step,
+  the six strategies with their names in the paper, and the model's rules.
+
+Light and dark themes follow the system setting (toggle in the header).
+Fonts are bundled, so the site works offline. The paper PDF is served at
+`http://127.0.0.1:8000/paper/main.pdf`.
 
 ## Notes on reproducibility
 

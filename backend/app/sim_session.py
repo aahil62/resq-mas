@@ -12,6 +12,10 @@ from experiments.configs import DEFAULT_SEVERITY_SEQUENCE
 from simulation.environment import ScenarioConfig, VictimStatus
 from simulation.simulation import Simulation
 
+# Blockages start within the first 120 min and last 10-75 min, as in the paper,
+# independent of the (generous) safety cap on run length.
+BLOCKAGE_HORIZON = 300
+
 
 # The dashboard and API keep the original "no_coordination" name for the
 # independent protocol; the engine calls it "independent".
@@ -47,7 +51,7 @@ class SimulationSession:
             seed=params.seed, width=params.width, height=params.height, victim_count=params.victim_count,
             severity_sequence=severity_sequence, blockage_level=params.blockage_level,
             initial_resources=params.initial_resources, max_time=params.max_time,
-            arrival_window=params.arrival_window,
+            arrival_window=params.arrival_window, blockage_horizon=BLOCKAGE_HORIZON,
         )
         self.engine = Simulation(cfg, policy=ENGINE_POLICY.get(params.policy, params.policy),
                                   rescue_agent_count=params.rescue_agent_count, comm_loss=params.comm_loss,

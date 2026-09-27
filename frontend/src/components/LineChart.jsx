@@ -48,16 +48,16 @@ export default function LineChart({
         {yTicks.map((t) => (
           <g key={t}>
             <line x1={M.l} x2={W - M.r} y1={sy(t)} y2={sy(t)} stroke="var(--border)" strokeWidth="1" />
-            <text x={M.l - 6} y={sy(t)} textAnchor="end" dominantBaseline="middle" fontSize="10" fill="var(--text-dim)">
+            <text x={M.l - 6} y={sy(t)} textAnchor="end" dominantBaseline="middle" fontSize="11.5" fill="var(--text-dim)">
               {formatY(t)}
             </text>
           </g>
         ))}
         {(xTicks || xs).map((t) => (
-          <text key={t} x={sx(t)} y={H - M.b + 14} textAnchor="middle" fontSize="10" fill="var(--text-dim)">{formatX(t)}</text>
+          <text key={t} x={sx(t)} y={H - M.b + 14} textAnchor="middle" fontSize="11.5" fill="var(--text-dim)">{formatX(t)}</text>
         ))}
-        <text x={M.l + iw / 2} y={H - 4} textAnchor="middle" fontSize="10.5" fill="var(--text-dim)">{xLabel}</text>
-        <text x={12} y={M.t + ih / 2} textAnchor="middle" fontSize="10.5" fill="var(--text-dim)"
+        <text x={M.l + iw / 2} y={H - 4} textAnchor="middle" fontSize="12" fill="var(--text-dim)">{xLabel}</text>
+        <text x={12} y={M.t + ih / 2} textAnchor="middle" fontSize="12" fill="var(--text-dim)"
               transform={`rotate(-90 12 ${M.t + ih / 2})`}>{yLabel}</text>
         {hoverX != null && (
           <line x1={sx(hoverX)} x2={sx(hoverX)} y1={M.t} y2={M.t + ih} stroke="var(--text-dim)" strokeWidth="1" strokeDasharray="3 3" />
@@ -101,7 +101,7 @@ export default function LineChart({
 
 export function Legend({ series }) {
   return (
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 14px', marginTop: 6, fontSize: 11, color: 'var(--text-dim)' }}>
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 14px', marginTop: 8, fontSize: 12.5, color: 'var(--text-dim)' }}>
       {series.map((s) => (
         <span key={s.key} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
           <svg width="22" height="10" aria-hidden="true">

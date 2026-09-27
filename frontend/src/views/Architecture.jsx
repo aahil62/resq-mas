@@ -1,180 +1,151 @@
+import ProtocolChip from '../components/ProtocolChip.jsx'
 import { PROTOCOLS } from '../protocols.js'
 
-const SECTION_STYLE = { padding: 14, display: 'flex', flexDirection: 'column', gap: 6 }
-const PRE = { background: 'var(--panel-2)', padding: 8, borderRadius: 4, overflowX: 'auto' }
-
-export default function Architecture() {
+export default function Architecture({ go }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 1100 }}>
-      <Section title="The Core Idea">
-        <p>
-          Several rescue agents serve the same disaster area. Many victims are attractive to <b>several</b> agents at
-          once: similar priority, similar distance. <b>Without coordination</b>, agents independently pick the same
-          victim and waste trips; with more agents, the waste grows until adding units barely helps. <b>With
-          coordination</b>, agents exchange information before committing and divide the work. The question the
-          paper answers is <i>how much</i> communication that takes: three coordinated agents finish faster than
-          eight independent ones.
+    <div className="page how">
+      <div className="section-head">
+        <div className="eyebrow">How it works</div>
+        <h2>Agents that share one picture of the disaster</h2>
+        <p className="lede">
+          RESQ-MAS is a multi-agent system. Each agent has one job and they cooperate through a shared board. The only
+          thing we change between experiments is how the rescue teams agree on who goes where.
         </p>
-      </Section>
-
-      <div className="panel" style={{ padding: 16 }}>
-        <div className="panel-title" style={{ padding: 0, border: 0, marginBottom: 12 }}>System Diagram</div>
-        <ArchitectureDiagram />
       </div>
 
-      <Section title="Agent Roles">
-        <ul>
-          <li><b>Medical Agent</b>: registers each victim when it is reported (at t=0, or over time when an arrival
-            window is set) and assigns a priority from severity (critical=4, high=3, moderate=2, low=1), which rises
-            by 0.1 per minute of waiting. A simple, transparent rule, not a learned model.</li>
-          <li><b>Logistics Agent</b>: sole owner of the pool of medical kits. It never lets the pool go negative and
-            never gives two kits for the same victim.</li>
-          <li><b>Rescue Agents 1…N</b> (up to 8): identical instances of one class. Each scores reachable victims by
-            <span className="mono"> utility = priority − 0.1 × BFS distance</span>, commits to a target, drives there,
-            and delivers the victim to the hospital. The <i>only</i> thing that changes between protocols is what
-            happens between "score" and "commit".</li>
-        </ul>
-      </Section>
+      <section className="card how-diagram">
+        <FlowDiagram />
+      </section>
 
-      <Section title="The Communication Ladder: Six Protocols">
-        <p style={{ margin: 0 }}>Ordered from least to most information exchanged before an agent commits. All six share the
-          same environment, agents, routing and metrics, so any difference comes from the protocol alone.</p>
-        <table>
-          <thead><tr><th>Protocol</th><th>What is exchanged</th></tr></thead>
-          <tbody>
-            {PROTOCOLS.map((p) => (
-              <tr key={p.id}>
-                <td style={{ whiteSpace: 'nowrap' }}>
-                  <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 2, background: p.color, marginRight: 6 }} />
-                  <b>{p.short}</b> <span style={{ color: 'var(--text-dim)' }}>{p.label}</span>
-                </td>
-                <td style={{ color: 'var(--text-dim)' }}>{p.desc}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <pre style={PRE}>{`Independent (IND)                     Propose-resolve (PR-1)
------------------                     ----------------------
-A selects V1                          A proposes V1
-B selects V1                          B proposes V1
-(both drive toward V1)                conflict: highest utility wins -> A keeps V1
-one arrives to find nothing           B proposes V2 next minute (PR-k: same minute)
-                                      A -> V1,  B -> V2  (parallel)`}</pre>
-      </Section>
+      <section className="band">
+        <h3>What happens in one simulated minute</h3>
+        <ol className="minute-steps">
+          <li><b>New reports and road changes</b> arrive. Blocked and reopened roads are known to everyone immediately.</li>
+          <li><b>The medical agent</b> registers new casualties and raises the priority of everyone still waiting.</li>
+          <li><b>The logistics agent</b> answers requests for medical kits.</li>
+          <li><b>Every free rescue team</b> scores the casualties it can reach: urgency minus distance.</li>
+          <li><b>The coordination strategy decides</b> which team commits to which casualty. This is the step under study.</li>
+          <li><b>Teams move one block</b> along the shortest open route, pick up casualties and deliver them to hospital.</li>
+        </ol>
+      </section>
 
-      <Section title="Realism Knobs">
-        <ul>
-          <li><b>Victims arriving over time</b>: with an arrival window, each victim appears at a random minute; nobody
-            knows about it until then, and its waiting time starts at that moment.</li>
-          <li><b>Unreliable radio</b>: every broadcast (proposal, bundle or claim) can be lost. <i>Independent</i> loss
-            drops each message at random; <i>bursty</i> loss puts an agent's radio into outages lasting several minutes,
-            during which everything it sends is lost. A lost proposal becomes a unilateral commitment, so duplicates
-            return as the link degrades.</li>
-          <li><b>Road blockages</b>: a share of road cells blocks and reopens mid-run, forcing BFS replanning.</li>
-        </ul>
-      </Section>
+      <section className="band">
+        <h3>Six coordination strategies</h3>
+        <p className="muted">Listed from least to most information shared before a team commits. The codes match the research paper.</p>
+        <div className="card" style={{ padding: 0 }}>
+          <div className="table-wrap">
+            <table>
+              <thead><tr><th>Strategy</th><th>Name in the paper</th><th>What the teams share</th></tr></thead>
+              <tbody>
+                {PROTOCOLS.map((p) => (
+                  <tr key={p.id}>
+                    <td><ProtocolChip id={p.id} /></td>
+                    <td className="muted">{p.paper}</td>
+                    <td style={{ whiteSpace: 'normal', minWidth: 320 }}>{p.desc}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div className="compare-example">
+          <div className="card">
+            <h3 style={{ fontSize: 18 }}>No talking</h3>
+            <ol className="mini-seq">
+              <li>Team A picks casualty V1</li>
+              <li>Team B also picks V1</li>
+              <li>Both drive to V1</li>
+              <li className="bad">One arrives to find nobody left</li>
+            </ol>
+          </div>
+          <div className="card">
+            <h3 style={{ fontSize: 18 }}>Negotiate</h3>
+            <ol className="mini-seq">
+              <li>A proposes V1, B proposes V1</li>
+              <li>The closer, higher-priority bid wins: A keeps V1</li>
+              <li>B picks its next best, V2</li>
+              <li className="good">Both casualties are served in parallel</li>
+            </ol>
+          </div>
+        </div>
+      </section>
 
-      <Section title="Why BFS">
-        <p><b>BFS</b> answers: <i>"How does a rescue agent reach its victim?"</i> It is a shortest-path search on a grid
-          with uniform movement cost, re-run whenever a known route becomes blocked.</p>
-        <p><b>Task allocation</b> answers: <i>"Which agent should handle which victim, given what the others are doing?"</i>
-          That is the coordination problem this project is about. The two are kept in separate modules on purpose.</p>
-      </Section>
+      <section className="band">
+        <h3>Real-world complications you can switch on</h3>
+        <div className="agents">
+          <div className="card agent-card">
+            <b>Casualties reported over time</b>
+            <p className="muted">Instead of everyone being known at the start, calls arrive at random minutes. Nobody knows about a casualty until the call comes in.</p>
+          </div>
+          <div className="card agent-card">
+            <b>Patchy radio</b>
+            <p className="muted">Messages can be lost at random, or a team's radio can go dark for several minutes. A team that is not heard acts on its own, so duplicate chases come back.</p>
+          </div>
+          <div className="card agent-card">
+            <b>Blocked roads</b>
+            <p className="muted">Some roads close and reopen during the mission. Teams find a new shortest route with breadth-first search.</p>
+          </div>
+        </div>
+      </section>
 
-      <Section title="Metrics">
-        <ul>
-          <li><b>Completion time</b>: minute the last victim reaches the hospital.</li>
-          <li><b>Victim wait</b> (plain, severity-weighted, and for critical victims): minutes from a victim being reported to its delivery.</li>
-          <li><b>Duplicate conflicts</b>: times two agents were simultaneously committed to the same victim.</li>
-          <li><b>Wasted / idle agent-minutes</b>: time spent on targets later abandoned, and time spent with nothing to do.</li>
-          <li><b>Messages and data sent</b>: the communication cost of each protocol.</li>
-        </ul>
-        <p style={{ color: 'var(--text-dim)', fontSize: 12 }}>
-          <b>Modeling assumption:</b> one simulation timestep represents one minute of simulated disaster-response
-          operation. These are simulated minutes produced by the model, not real-world measured rescue times.
-        </p>
-      </Section>
+      <section className="band">
+        <h3>The rules of the model</h3>
+        <div className="rules">
+          <div className="card">
+            <div className="eyebrow">Priority</div>
+            <p className="formula num">priority = severity + 0.1 × minutes waiting</p>
+            <p className="muted small">Severity: critical 4, high 3, moderate 2, low 1. Long waits slowly raise anyone's priority.</p>
+          </div>
+          <div className="card">
+            <div className="eyebrow">Choosing a target</div>
+            <p className="formula num">score = priority − 0.1 × distance</p>
+            <p className="muted small">Distance is the number of blocks on the shortest open route.</p>
+          </div>
+          <div className="card">
+            <div className="eyebrow">Time</div>
+            <p className="formula num">1 step = 1 simulated minute</p>
+            <p className="muted small">All times are produced by the model, not measured in the field.</p>
+          </div>
+        </div>
+        <div><button className="btn primary big" onClick={() => go?.('simulator')}>Try it in the simulator</button></div>
+      </section>
     </div>
   )
 }
 
-function Section({ title, children }) {
-  return (
-    <div className="panel" style={SECTION_STYLE}>
-      <div style={{ fontWeight: 700, color: 'var(--accent)' }}>{title}</div>
-      {children}
-    </div>
+function FlowDiagram() {
+  const node = (x, y, w, h, title, sub, tone) => (
+    <g key={title}>
+      <rect x={x} y={y} width={w} height={h} rx="10"
+            fill={tone === 'accent' ? 'var(--accent-soft)' : 'var(--panel-2)'}
+            stroke={tone === 'accent' ? 'var(--accent)' : 'var(--border-strong)'} strokeWidth={tone === 'accent' ? 2 : 1} />
+      <text x={x + w / 2} y={y + h / 2 - (sub ? 7 : -5)} textAnchor="middle" fontFamily="var(--font-display)" fontSize="19" fontWeight="700" fill="var(--text)">{title}</text>
+      {sub && <text x={x + w / 2} y={y + h / 2 + 15} textAnchor="middle" fontFamily="var(--font-body)" fontSize="12.5" fill="var(--text-dim)">{sub}</text>}
+    </g>
   )
-}
-
-function ArchitectureDiagram() {
-  const box = (x, y, w, h, label, sub) => {
-    const cx = x + w / 2
-    const cy = y + h / 2
-    return (
-      <g key={label}>
-        <rect x={x} y={y} width={w} height={h} rx={6} fill="var(--panel-2)" stroke="var(--border)" />
-        <text x={cx} y={sub ? cy - 8 : cy} textAnchor="middle" dominantBaseline="middle"
-              fontFamily="var(--font-mono)" fontSize="12.5" fontWeight="600" fill="var(--text)">
-          {label}
-        </text>
-        {sub && (
-          <text x={cx} y={cy + 8} textAnchor="middle" dominantBaseline="middle"
-                fontFamily="var(--font-display)" fontSize="10" fill="var(--text-dim)">
-            {sub}
-          </text>
-        )}
-      </g>
-    )
-  }
-  const line = (x1, y1, x2, y2, dashed) => (
-    <line key={`${x1}-${y1}-${x2}-${y2}`} x1={x1} y1={y1} x2={x2} y2={y2}
-          stroke="var(--border)" strokeWidth="1.5" strokeDasharray={dashed ? '4 3' : undefined} />
-  )
-
+  const arrow = (d, dashed) => <path d={d} fill="none" stroke="var(--text-dim)" strokeWidth="1.6" strokeDasharray={dashed ? '5 4' : undefined} markerEnd="url(#arr)" />
   return (
-    <svg viewBox="0 0 640 560" style={{ width: '100%', maxWidth: 640, display: 'block', margin: '0 auto' }}>
-      {box(210, 10, 220, 44, 'DISASTER ENVIRONMENT')}
-      {line(320, 54, 320, 90)}
-      {line(320, 90, 130, 90)}
-      {line(320, 90, 510, 90)}
-      {line(130, 90, 130, 110)}
-      {line(510, 90, 510, 110)}
-
-      {box(30, 110, 200, 54, 'Medical Agent', 'victim priority')}
-      {box(410, 110, 200, 54, 'Logistics Agent', 'resource status')}
-
-      {line(130, 164, 130, 190)}
-      {line(510, 164, 510, 190)}
-      {line(130, 190, 320, 190)}
-      {line(510, 190, 320, 190)}
-      {line(320, 190, 320, 210)}
-
-      {box(210, 210, 220, 44, 'SHARED INFORMATION')}
-
-      {line(320, 254, 320, 280)}
-      {line(320, 280, 130, 280)}
-      {line(320, 280, 510, 280)}
-      {line(130, 280, 130, 300)}
-      {line(510, 280, 510, 300)}
-
-      {box(30, 300, 200, 54, 'Rescue Agent 1', 'scores victims, commits')}
-      {box(410, 300, 200, 54, 'Rescue Agent N', 'up to 8 agents')}
-
-      {line(230, 327, 410, 327, true)}
-      <text x="320" y="322" textAnchor="middle" fontFamily="var(--font-display)" fontSize="10" fill="var(--text-dim)">radio (may be lossy)</text>
-
-      {line(130, 354, 130, 390)}
-      {line(510, 354, 510, 390)}
-      {line(130, 390, 320, 390)}
-      {line(510, 390, 320, 390)}
-      {line(320, 390, 320, 410)}
-
-      {box(170, 410, 300, 44, 'ALLOCATION PROTOCOL', 'IND · CLM · PR-1 · PR-k · HUN · CBBA')}
-      {line(320, 454, 320, 480)}
-      {box(210, 480, 220, 40, 'BFS')}
-      {line(320, 520, 320, 540)}
-      <text x="320" y="555" textAnchor="middle" fontFamily="var(--font-mono)" fontSize="13" fontWeight="700" fill="var(--good)">RESCUE</text>
+    <svg viewBox="0 0 900 300" className="flow" role="img" aria-label="How the agents connect: disaster to medical and logistics agents, a shared board, rescue teams, the coordination strategy, and routing">
+      <defs>
+        <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0 0L10 5L0 10z" fill="var(--text-dim)" />
+        </marker>
+      </defs>
+      {node(10, 20, 170, 64, 'Disaster', 'city, casualties, roads')}
+      {node(10, 118, 170, 64, 'Medical agent', 'triage and priority')}
+      {node(10, 216, 170, 64, 'Logistics agent', 'medical kits')}
+      {node(250, 110, 180, 80, 'Shared board', 'casualties, claims, roads')}
+      {node(500, 110, 170, 80, 'Rescue teams', 'up to 8, score targets')}
+      {node(730, 20, 160, 110, 'Coordination', 'one of six strategies', 'accent')}
+      {node(730, 170, 160, 110, 'Route and rescue', 'shortest open path')}
+      {arrow('M95 84V116')}
+      {arrow('M180 150H248')}
+      {arrow('M180 248C215 248 215 180 248 175')}
+      {arrow('M430 150H498')}
+      {arrow('M670 135C700 120 700 80 728 75')}
+      {arrow('M810 130V168')}
+      {arrow('M730 75C580 55 400 60 340 108', true)}
+      <text x="540" y="40" textAnchor="middle" fontFamily="var(--font-body)" fontSize="12.5" fill="var(--text-dim)">claims and proposals over the radio</text>
     </svg>
   )
 }

@@ -9,7 +9,7 @@ from functools import lru_cache
 from fastapi import APIRouter, HTTPException
 
 from backend.app.schemas.experiments import ExperimentRunRequest
-from backend.app.sim_session import ENGINE_POLICY
+from backend.app.sim_session import BLOCKAGE_HORIZON, ENGINE_POLICY
 from experiments.configs import DEFAULT_SEVERITY_SEQUENCE, resources_for
 from experiments.runner import RESULTS_DIR, build_comparison_table
 from simulation.environment import ScenarioConfig
@@ -49,7 +49,7 @@ def run_experiment(req: ExperimentRunRequest) -> dict:
             seed=seed, width=req.width, height=req.width, victim_count=req.victim_count,
             severity_sequence=severity_sequence, blockage_level=req.blockage_level,
             initial_resources=resources_for(req.victim_count), max_time=req.max_time,
-            arrival_window=req.arrival_window,
+            arrival_window=req.arrival_window, blockage_horizon=BLOCKAGE_HORIZON,
         )
         for policy in policies:
             res = run_policy(cfg, ENGINE_POLICY.get(policy, policy), rescue_agent_count=req.rescue_agent_count,

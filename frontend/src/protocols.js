@@ -1,37 +1,43 @@
-// The six task-allocation protocols studied in the paper, in ladder order
-// (least to most information exchanged before an agent commits). Colours are
-// a fixed categorical order validated for colour-vision deficiency against
-// the dark panel surface -- a protocol keeps its colour everywhere.
+// The six task-allocation protocols from the paper, in ladder order (least
+// to most information exchanged before a team commits). `name` is the plain
+// label used across the site; `paper` and `short` match the paper exactly.
+// Colours come from theme tokens (see index.css), validated for colour-vision
+// deficiency; a protocol keeps its colour everywhere.
 export const PROTOCOLS = [
   {
-    id: 'no_coordination', short: 'IND', label: 'Independent', color: '#3987e5', marker: 'circle',
-    desc: 'No communication. Each agent commits to its own best victim, so agents can pile onto the same one.',
+    id: 'no_coordination', short: 'IND', name: 'No talking', paper: 'Independent', color: 'var(--p-ind)', marker: 'circle',
+    desc: 'Each team heads for the victim that looks best to it, without telling anyone. Teams often chase the same victim.',
   },
   {
-    id: 'claim', short: 'CLM', label: 'Claim-only', color: '#d95926', marker: 'square',
-    desc: 'Agents announce what they committed to; others skip claimed victims. Choices made in the same minute still collide.',
+    id: 'claim', short: 'CLM', name: 'Announce claims', paper: 'Claim broadcasting', color: 'var(--p-clm)', marker: 'square',
+    desc: 'Teams announce the victim they took, and others skip it. Two teams choosing in the same minute can still collide.',
   },
   {
-    id: 'mas', short: 'PR-1', label: 'Propose-resolve (1 round)', color: '#199e70', marker: 'triangle',
-    desc: 'Agents propose first; the highest-utility proposal wins each victim. Losers wait one minute and try again.',
+    id: 'mas', short: 'PR-1', name: 'Negotiate', paper: 'One-round propose–resolve', color: 'var(--p-pr1)', marker: 'triangle',
+    desc: 'Teams propose a victim first. If two want the same one, the better-placed team gets it and the other picks again next minute.',
   },
   {
-    id: 'mas_iterative', short: 'PR-k', label: 'Iterative propose-resolve', color: '#c98500', marker: 'diamond',
-    desc: 'Like PR-1, but losers re-propose immediately in the same minute until everyone has a target.',
+    id: 'mas_iterative', short: 'PR-k', name: 'Negotiate to agreement', paper: 'Iterative propose–resolve', color: 'var(--p-prk)', marker: 'diamond',
+    desc: 'Like Negotiate, but a team that loses picks again straight away, so every free team leaves with a target.',
   },
   {
-    id: 'hungarian', short: 'HUN', label: 'Centralized Hungarian', color: '#d55181', marker: 'triangleDown',
-    desc: 'A coordinator collects every utility and computes the optimal matching. Reference only: it needs a working central link.',
+    id: 'hungarian', short: 'HUN', name: 'Central dispatcher', paper: 'Centralized Hungarian', color: 'var(--p-hun)', marker: 'triangleDown',
+    desc: 'A control room collects every option and computes the best assignment. Needs a working link to the centre.',
   },
   {
-    id: 'cbba', short: 'CBBA', label: 'CBBA (bundle consensus)', color: '#008300', marker: 'plus',
-    desc: 'The standard consensus-based bundle algorithm: agents bid on bundles of future victims and repeat consensus rounds.',
+    id: 'cbba', short: 'CBBA', name: 'Auction (CBBA)', paper: 'Consensus-based bundle algorithm', color: 'var(--p-cbba)', marker: 'plus',
+    desc: 'The standard auction method from robotics: teams bid on several future victims and repeat rounds until the bids agree.',
   },
 ]
 
 export const PROTOCOL = Object.fromEntries(PROTOCOLS.map((p) => [p.id, p]))
 
-// Rescue units on the grid (identity, not protocol).
-export const UNIT_COLORS = ['#e0af68', '#bb9af7', '#7dcfff', '#9aa5ce', '#73daca', '#e6e6e6', '#2ac3de', '#cfc9c2']
-export const unitColor = (id) => UNIT_COLORS[(id.charCodeAt(id.length - 1) - 97) % UNIT_COLORS.length] || UNIT_COLORS[0]
+export const SEVERITIES = [
+  { id: 'critical', label: 'Critical', tag: 'red tag' },
+  { id: 'high', label: 'High', tag: 'orange tag' },
+  { id: 'moderate', label: 'Moderate', tag: 'yellow tag' },
+  { id: 'low', label: 'Low', tag: 'green tag' },
+]
+
 export const unitLetter = (id) => id.slice(-1).toUpperCase()
+export const teamName = (id) => `Team ${unitLetter(id)}`

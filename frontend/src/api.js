@@ -22,9 +22,11 @@ export const api = {
   getEvents: (since = 0, limit = 200) => request('GET', `/api/simulation/events?since=${since}&limit=${limit}`),
   runExperiment: (params) => request('POST', '/api/experiments/run', params),
   study: () => request('GET', '/api/experiments/study'),
+  replay: (policy, seed = 11) => request('GET', `/api/simulation/replay?policy=${policy}&seed=${seed}`),
   precomputedMeta: () => request('GET', '/api/experiments/precomputed/meta'),
   precomputedSummary: () => request('GET', '/api/experiments/precomputed/summary'),
   precomputedTable: (name) => request('GET', `/api/experiments/precomputed/${name}`),
 }
 
 export const RESULTS_BASE = `${BASE}/results`
+export const PAPER_URL = `${BASE}/paper/main.pdf`
