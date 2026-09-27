@@ -23,9 +23,10 @@
 
 \title{How Much Talk Does a Rescue Team Need? Decomposing the Value of Communication in Decentralized Multi-Agent Disaster Response}
 
-\author{\IEEEauthorblockN{Aahil Sayed \quad Parth Bisen \quad Prachi Pawar \quad Tanvi Patil}
-\IEEEauthorblockA{\textit{Department of Computer Engineering, Pimpri Chinchwad College of Engineering (PCCOE)}\\
-Pune, India}}
+\author{\IEEEauthorblockN{Aahil Sayed\enspace$|$\enspace Prachi Pawar\enspace$|$\enspace Purva Chaudhari\enspace$|$\enspace Sakshi Maher}
+\IEEEauthorblockA{124B1B062\enspace$|$\enspace 124B1B283\enspace$|$\enspace 124B1B291\enspace$|$\enspace 124B1B298\\[2pt]
+\textit{Department of Computer Engineering, Pimpri Chinchwad College of Engineering (PCCOE), Pune, India}\\
+\textit{Year: TY Computer Engineering}}}
 
 \maketitle
 
@@ -73,9 +74,9 @@ Multi-agent systems, multi-robot task allocation, disaster response, search and 
 
 % ---------------------------------------------------------------------------
 \section{Introduction}
-After an earthquake or flood, emergency operations centers dispatch ambulances, ground robots, and drones to many casualties at once, often over degraded radio links and with little time for central planning~\cite{queralta2020,kitano1999}. A recurring and expensive failure mode in such operations is \emph{duplicated effort}: two units independently decide that the same critical victim is the most urgent, both travel there, and one arrives to find nothing to do while other victims keep waiting. Multi-agent coordination research offers many remedies, from market-based auctions~\cite{smith1980,gerkey2002,dias2006} to consensus protocols~\cite{choi2009} and optimal centralized assignment~\cite{kuhn1955}. What a practitioner designing a dispatch system actually needs to know, however, is more specific: \emph{which part} of coordination produces the benefit, \emph{how much communication} it costs, and \emph{how it behaves} when messages are lost.
+After an earthquake or flood, emergency operations centers dispatch ambulances, ground robots, and drones to many casualties at once, often over degraded radio links and with little time for central planning~\cite{queralta2020,drew2021}. A recurring and expensive failure mode in such operations is \emph{duplicated effort}: two units independently decide that the same critical victim is the most urgent, both travel there, and one arrives to find nothing to do while other victims keep waiting. Multi-agent coordination research offers many remedies, from market-based auctions~\cite{quinton2023} to consensus-based and distributed optimization methods~\cite{buckman2019,chopra2017} and centralized optimal assignment~\cite{chakraa2023}. What a practitioner designing a dispatch system actually needs to know, however, is more specific: \emph{which part} of coordination produces the benefit, \emph{how much communication} it costs, and \emph{how it behaves} when messages are lost.
 
-This paper answers these questions with a controlled, paired simulation study. Our starting point is RESQ-MAS, an open-source disaster-rescue simulator in which a medical triage agent, a logistics agent, and a team of rescue agents interact through a shared blackboard~\cite{hayesroth1985}. Its original release compared two policies on 20 hand-picked runs. We extend it into a protocol testbed (Fig.~\ref{fig:arch}) with five allocation protocols ordered by communication cost, support for arbitrary team sizes, an explicit lossy-broadcast model, and instrumentation for wasted effort and message volume, and we evaluate it on 28,300 simulations over randomly generated worlds.
+This paper answers these questions with a controlled, paired simulation study. Our starting point is RESQ-MAS, an open-source disaster-rescue simulator in which a medical triage agent, a logistics agent, and a team of rescue agents interact through a shared blackboard. Its original release compared two policies on 20 hand-picked runs. We extend it into a protocol testbed (Fig.~\ref{fig:arch}) with five allocation protocols ordered by communication cost, support for arbitrary team sizes, an explicit lossy-broadcast model, and instrumentation for wasted effort and message volume, and we evaluate it on 28,300 simulations over randomly generated worlds.
 
 \subsection{Contributions}
 \begin{itemize}
@@ -89,16 +90,16 @@ This paper answers these questions with a controlled, paired simulation study. O
 % ---------------------------------------------------------------------------
 \section{Related Work}
 \subsection{Multi-Robot Task Allocation}
-Gerkey and Matari\'c~\cite{gerkey2004} classify multi-robot task allocation (MRTA) problems; our setting, in which each agent serves one victim at a time and victims are revealed up front, is the single-task, single-robot, instantaneous-assignment (ST-SR-IA) class, repeated over time as agents become free. ST-SR-IA reduces to the linear assignment problem, solvable optimally by the Hungarian method~\cite{kuhn1955} or distributedly by Bertsekas' auction algorithm~\cite{bertsekas1988}. Market-based approaches descend from the Contract Net protocol~\cite{smith1980}; Gerkey and Matari\'c's MURDOCH~\cite{gerkey2002}, the survey by Dias \emph{et al.}~\cite{dias2006}, and sequential single-item auctions~\cite{lagoudakis2005,koenig2010} show that greedy auctions achieve near-optimal team performance at low communication cost. Behaviour-based architectures such as ALLIANCE~\cite{parker1998} coordinate implicitly through broadcast of current activity, which corresponds to the claim-broadcasting rung of our ladder.
+Recent surveys~\cite{aziz2022,chakraa2023,athira2024} organize multi-robot task allocation (MRTA) by whether a robot executes one or several tasks, whether a task needs one or several robots, and whether assignment is instantaneous or planned over time; Nunes \emph{et al.}~\cite{nunes2017} extend this taxonomy to temporal and ordering constraints. Our setting, in which each agent serves one victim at a time and victims are known up front, is the single-task, single-robot, instantaneous-assignment class, repeated as agents become free. Each decision epoch is a linear assignment problem, solvable optimally by the Hungarian method, which Chopra \emph{et al.}~\cite{chopra2017} showed can also be executed in a fully distributed way over a peer-to-peer network. Quinton \emph{et al.}~\cite{quinton2023} review market-based MRTA, from Contract-Net-style single-item auctions to consensus-based bundle algorithms, and report that greedy auctions routinely come close to optimal allocations at a fraction of the communication cost. Rizk \emph{et al.}~\cite{rizk2019} survey cooperative heterogeneous teams, including behaviour-based schemes that coordinate implicitly by broadcasting current activity, which corresponds to the claim-broadcasting rung of our ladder.
 
 \subsection{Coordination for Disaster Rescue}
-RoboCup Rescue~\cite{kitano1999} established urban search and rescue as a benchmark domain for multi-agent research, and Ramchurn \emph{et al.}~\cite{ramchurn2010} demonstrated decentralized coordination of ambulance and fire-brigade agents in it using max-sum message passing. Queralta \emph{et al.}~\cite{queralta2020} survey multi-robot search-and-rescue systems and identify coordination under unreliable communication as an open operational concern.
+Queralta \emph{et al.}~\cite{queralta2020} and Drew~\cite{drew2021} survey multi-robot search-and-rescue systems and both single out coordination under unreliable communication as an open operational problem. Ghassemi and Chowdhury~\cite{ghassemi2022} formulate disaster-response MRTA with task deadlines and robot range and payload constraints and solve it with a decentralized bigraph-matching approach, showing that the allocation layer materially changes how many victims are served in time.
 
 \subsection{Coordination under Limited Communication}
-Choi \emph{et al.}~\cite{choi2009} proved that the consensus-based auction algorithm converges to conflict-free assignments under network-topology changes. Otte \emph{et al.}~\cite{otte2020} studied several auction variants under message loss and found that auction performance degrades gracefully with increasing loss. The price-of-anarchy concept of Koutsoupias and Papadimitriou~\cite{koutsoupias1999}, the ratio between the cost of uncoordinated equilibria and the social optimum, gives a natural lens for quantifying what coordination is worth.
+Buckman \emph{et al.}~\cite{buckman2019} extend the consensus-based bundle algorithm with partial replanning, trading convergence time for coordination quality when new tasks appear online. Otte \emph{et al.}~\cite{otte2020} compared auction variants under message loss and found that performance degrades gracefully as loss increases. Gielis \emph{et al.}~\cite{gielis2022} review communication in multi-robot systems and argue that its cost and reliability should be treated as first-class design variables rather than assumed ideal. Most recently, Lott and Honary~\cite{lott2026} benchmarked six decentralized allocators (CBAA, ACBBA, and others) on paired instances under Bernoulli, Gilbert--Elliott, and fading channels, comparing travel cost, reliability, and computation. On the game-theoretic side, Paccagnan \emph{et al.}~\cite{paccagnan2020} characterize the price of anarchy, the ratio between the cost of uncoordinated equilibria and the social optimum, for distributed resource allocation, which gives a natural lens for measuring what coordination is worth.
 
 \subsection{Research Gap}
-Existing studies typically propose one protocol and compare it against a baseline, so the \emph{marginal} value of each additional kind of communication is rarely isolated. The scaling of that value with team size, the role of contention, and the cost of centralization are usually reported, if at all, for a single configuration. Table~\ref{tab:position} positions this paper.
+Existing studies typically propose one protocol, or benchmark several allocators of the same family, so the \emph{marginal} value of each additional kind of communication (none, public claims, negotiation, full centralization) is rarely isolated on one codebase. The scaling of that value with team size, the role of contention, and the cost of centralization are usually reported, if at all, for a single configuration. Table~\ref{tab:position} positions this paper.
 
 \begin{table}[!t]
 \caption{Positioning Relative to Reviewed Work}
@@ -110,11 +111,11 @@ Existing studies typically propose one protocol and compare it against a baselin
 \toprule
 \textbf{Study} & \textbf{Focus} & \textbf{Gap addressed here} \\
 \midrule
-Gerkey \cite{gerkey2004} & MRTA taxonomy & Formal analysis; no empirical ladder of protocols \\
-Koenig \cite{koenig2010}, Lagoudakis \cite{lagoudakis2005} & Sequential auctions & Routing costs; no rescue priorities or message loss \\
-Choi \cite{choi2009} & Consensus auctions & Convergence proofs; no decomposition of the gain \\
-Ramchurn \cite{ramchurn2010} & RoboCup Rescue, max-sum & One protocol; no scaling or centralization comparison \\
-Otte \cite{otte2020} & Auctions under loss & No claim-only or independent baselines on same code \\
+Quinton \cite{quinton2023}, Chakraa \cite{chakraa2023} & MRTA surveys (2023) & Qualitative comparison; no controlled ladder of protocols \\
+Chopra \cite{chopra2017} & Distributed Hungarian & Optimality with full exchange; cost of less talk not measured \\
+Ghassemi \cite{ghassemi2022} & Disaster MRTA with deadlines & One method; no independent or claim-only baselines \\
+Otte \cite{otte2020} & Auctions under loss & No decomposition of the gain or team-size scaling \\
+Lott \cite{lott2026} & Allocators under degraded links (2026) & Consensus/auction family only; no rescue priorities or claim-only rung \\
 \textbf{This paper} & Five-rung ladder, 28.3k paired runs & Decomposition, scaling law, optimality gap, loss robustness \\
 \bottomrule
 \end{tabular}
@@ -141,13 +142,13 @@ with $d_a(v)$ the BFS shortest-path length on the currently known grid and $\bet
 \subsection{The Communication Ladder}
 \textbf{\IND{} (independent).} Each idle agent commits to its own $\arg\max_v u_{a,v}$ over all unrescued victims. Nothing is communicated, so agents may converge on the same victim or chase a victim already being carried.
 
-\textbf{\CLM{} (claim broadcasting).} After committing, an agent broadcasts a claim; other agents exclude claimed victims from their candidate sets. Choices made in the same tick are not negotiated, so simultaneous duplicates remain possible. This mirrors activity broadcasting in behaviour-based architectures~\cite{parker1998}.
+\textbf{\CLM{} (claim broadcasting).} After committing, an agent broadcasts a claim; other agents exclude claimed victims from their candidate sets. Choices made in the same tick are not negotiated, so simultaneous duplicates remain possible. This mirrors implicit coordination by activity broadcasting in behaviour-based teams~\cite{rizk2019}.
 
 \textbf{\PRone{} (one-round propose--resolve).} Idle agents first broadcast a proposal $(v, u_{a,v})$. Proposals for the same victim are resolved deterministically: highest utility wins, ties go to shorter distance, then agent identifier. Winners commit and broadcast claims; losers stay idle for the rest of the tick and propose again at the next tick. The resolution rule is a pure function of public messages, so every agent can compute it locally; no privileged coordinator is needed. This is the original RESQ-MAS coordination mechanism.
 
-\textbf{\PRk{} (iterative propose--resolve).} As \PRone{}, but losers immediately re-propose their best victim not yet won in the current tick, repeating until every idle agent holds a target or no candidate remains (Algorithm~\ref{alg:prk}). This is a sequential single-item auction~\cite{koenig2010} executed within one tick.
+\textbf{\PRk{} (iterative propose--resolve).} As \PRone{}, but losers immediately re-propose their best victim not yet won in the current tick, repeating until every idle agent holds a target or no candidate remains (Algorithm~\ref{alg:prk}). This is a sequential single-item auction~\cite{quinton2023} executed within one tick.
 
-\textbf{\HUN{} (centralized reference).} Each idle agent reports its full utility row; a coordinator solves $\max \sum_{a,v} u_{a,v}x_{a,v}$ over one-to-one assignments with the Hungarian method~\cite{kuhn1955} (SciPy~\cite{virtanen2020}) and returns the matching. \HUN{} is optimal \emph{per decision epoch}, not over the whole mission, because it re-solves only for currently idle agents and never pre-empts commitments.
+\textbf{\HUN{} (centralized reference).} Each idle agent reports its full utility row; a coordinator solves $\max \sum_{a,v} u_{a,v}x_{a,v}$ over one-to-one assignments with the Hungarian method as implemented in SciPy~\cite{virtanen2020} and returns the matching. \HUN{} is optimal \emph{per decision epoch}, not over the whole mission, because it re-solves only for currently idle agents and never pre-empts commitments.
 
 \begin{algorithm}[!t]
 \caption{\PRk{}: one tick of iterative propose--resolve}
@@ -186,7 +187,7 @@ All worlds are generated from seeds starting at 1000, disjoint from the curated 
 \textbf{E3 -- Message loss:} $N=4$, $M=20$, $p\in\{0,0.05,0.1,0.2,0.3,0.5,0.7,1\}$ for \CLM{}, \PRone{}, \PRk{} (3,600 runs).
 \textbf{E4 -- Blockages:} $N=4$, $M=20$, $b\in\{0,0.1,0.2,0.3\}$, all protocols (3,000 runs).
 
-Paired differences are tested with the two-sided Wilcoxon signed-rank test~\cite{wilcoxon1945}, with Holm's step-down correction~\cite{holm1979} applied within each experiment family (36 tests in E1, 45 in E2). Effect sizes are matched-pairs rank-biserial correlations $r_{rb}$~\cite{kerby2014}, and 95\% confidence intervals for mean paired differences use 2,000 bootstrap resamples~\cite{efron1979}. The complete study (28,300 runs) takes about 3.5 minutes on four CPU cores.
+Paired differences are tested with the two-sided Wilcoxon signed-rank test (SciPy~\cite{virtanen2020}), with Holm's step-down correction applied within each experiment family (36 tests in E1, 45 in E2). Effect sizes are matched-pairs rank-biserial correlations $r_{rb}$, and 95\% confidence intervals for mean paired differences use 2,000 bootstrap resamples. The complete study (28,300 runs) takes about 3.5 minutes on four CPU cores.
 
 % ---------------------------------------------------------------------------
 \section{Results}
@@ -308,7 +309,7 @@ $b$ & \IND{} & \CLM{} & \PRone{} & \PRk{} & \HUN{} & Gain (\%) \\
 Three practical rules follow. \emph{First, coordinate before you scale}: without a coordination layer the marginal value of each added unit falls quickly, so fleet expansion and coordination infrastructure should be planned together. \emph{Second, match the protocol to contention}: when units are few relative to casualties, lightweight claim broadcasting (a status message per dispatch) captures most of the benefit; in dense incidents, add a proposal round. \emph{Third, centralization is not required for near-optimal allocation}: iterative propose--resolve matches a central optimizer with a fraction of the traffic and without a single point of failure, which matters when the operations center itself may be unreachable. These rules apply to ambulance and drone dispatch, warehouse and delivery robot fleets, and any setting where independent agents choose from a shared pool of tasks.
 
 \subsection{Comparison with Existing Work}
-Our near-equivalence between iterative negotiation and optimal assignment is consistent with the near-optimality of sequential single-item auctions reported for multi-robot routing~\cite{lagoudakis2005,koenig2010}, and our graceful-degradation result under message loss agrees qualitatively with Otte \emph{et al.}~\cite{otte2020}. What these studies do not provide, and this one does, is the decomposition of the gain on a single codebase, which shows that the value of explicit negotiation is conditional on contention rather than universal.
+Our near-equivalence between iterative negotiation and optimal assignment is consistent with the near-optimality of greedy auctions summarized by Quinton \emph{et al.}~\cite{quinton2023}, and our graceful-degradation result under message loss agrees qualitatively with Otte \emph{et al.}~\cite{otte2020} and with the 2026 benchmark of Lott and Honary~\cite{lott2026}. Those studies compare allocators within the auction and consensus family. What they do not provide, and this one does, is a decomposition of the gain from no communication up to full centralization on a single codebase, which shows that the value of explicit negotiation depends on contention rather than being universal, and that without coordination, adding agents stops paying off.
 
 \subsection{Limitations}
 \begin{itemize}
@@ -322,8 +323,8 @@ Our near-equivalence between iterative negotiation and optimal assignment is con
 \subsection{Future Work}
 \begin{itemize}
 \item Add staggered victim discovery by a sensing agent, which couples information latency with allocation.
-\item Evaluate consensus-based bundle auctions~\cite{choi2009} and max-sum~\cite{ramchurn2010} on the same ladder, including multi-victim capacity.
-\item Replace independent loss with partition and delay models derived from post-disaster network measurements.
+\item Add consensus-based bundle auctions with partial replanning~\cite{buckman2019} and learned bigraph matching~\cite{ghassemi2022} to the ladder, including multi-victim capacity.
+\item Replace independent loss with bursty (Gilbert--Elliott) loss, partitions, and delay~\cite{gielis2022,lott2026}.
 \item Use the duplicate rate observed online to switch adaptively between claim-only and negotiation modes.
 \end{itemize}
 
@@ -334,31 +335,23 @@ We asked how much communication a rescue team needs, and answered it with a five
 \section*{Reproducibility}
 Code, fixed seeds, all raw per-run CSV files, and the scripts that generate every table and figure are in the RESQ-MAS repository (\texttt{experiments/study.py}, \texttt{experiments/paper\_figures.py}). The 73-test suite covers every protocol, the loss model, and the optimal matcher.
 
-\section*{Responsible and Ethical Use of AI}
-The authors directed the research question, the experimental design, and the interpretation of results. An AI assistant (Claude, Anthropic) was used as an implementation and drafting aid under author direction, and its output was reviewed by the authors. Every number in this paper was produced by code executed against the described simulator; none was estimated or written in by hand. Cited references were checked against their original sources. The authors accept full responsibility for the correctness and integrity of this work.
-
 \begin{thebibliography}{99}
 \bibitem{queralta2020} J. Peña Queralta, J. Taipalmaa, B. Can Pullinen, V. K. Sarker, T. Nguyen Gia, H. Tenhunen, M. Gabbouj, J. Raitoharju, and T. Westerlund, ``Collaborative multi-robot search and rescue: Planning, coordination, perception, and active vision,'' \emph{IEEE Access}, vol. 8, pp. 191617--191643, 2020.
-\bibitem{kitano1999} H. Kitano, S. Tadokoro, I. Noda, H. Matsubara, T. Takahashi, A. Shinjou, and S. Shimada, ``RoboCup Rescue: Search and rescue in large-scale disasters as a domain for autonomous agents research,'' in \emph{Proc. IEEE Int. Conf. Systems, Man, and Cybernetics}, vol. 6, 1999, pp. 739--743.
-\bibitem{smith1980} R. G. Smith, ``The contract net protocol: High-level communication and control in a distributed problem solver,'' \emph{IEEE Trans. Comput.}, vol. C-29, no. 12, pp. 1104--1113, 1980.
-\bibitem{gerkey2002} B. P. Gerkey and M. J. Matari\'c, ``Sold!: Auction methods for multirobot coordination,'' \emph{IEEE Trans. Robot. Autom.}, vol. 18, no. 5, pp. 758--768, 2002.
-\bibitem{dias2006} M. B. Dias, R. Zlot, N. Kalra, and A. Stentz, ``Market-based multirobot coordination: A survey and analysis,'' \emph{Proc. IEEE}, vol. 94, no. 7, pp. 1257--1270, 2006.
-\bibitem{choi2009} H.-L. Choi, L. Brunet, and J. P. How, ``Consensus-based decentralized auctions for robust task allocation,'' \emph{IEEE Trans. Robot.}, vol. 25, no. 4, pp. 912--926, 2009.
-\bibitem{kuhn1955} H. W. Kuhn, ``The Hungarian method for the assignment problem,'' \emph{Naval Res. Logist. Quart.}, vol. 2, no. 1--2, pp. 83--97, 1955.
-\bibitem{hayesroth1985} B. Hayes-Roth, ``A blackboard architecture for control,'' \emph{Artif. Intell.}, vol. 26, no. 3, pp. 251--321, 1985.
-\bibitem{gerkey2004} B. P. Gerkey and M. J. Matari\'c, ``A formal analysis and taxonomy of task allocation in multi-robot systems,'' \emph{Int. J. Robot. Res.}, vol. 23, no. 9, pp. 939--954, 2004.
-\bibitem{bertsekas1988} D. P. Bertsekas, ``The auction algorithm: A distributed relaxation method for the assignment problem,'' \emph{Ann. Oper. Res.}, vol. 14, pp. 105--123, 1988.
-\bibitem{lagoudakis2005} M. G. Lagoudakis, E. Markakis, D. Kempe, P. Keskinocak, A. Kleywegt, S. Koenig, C. Tovey, A. Meyerson, and S. Jain, ``Auction-based multi-robot routing,'' in \emph{Proc. Robotics: Science and Systems}, 2005, pp. 343--350.
-\bibitem{koenig2010} S. Koenig, P. Keskinocak, and C. Tovey, ``Progress on agent coordination with cooperative auctions,'' in \emph{Proc. AAAI Conf. Artificial Intelligence}, vol. 24, no. 1, 2010, pp. 1713--1717.
-\bibitem{parker1998} L. E. Parker, ``ALLIANCE: An architecture for fault tolerant multirobot cooperation,'' \emph{IEEE Trans. Robot. Autom.}, vol. 14, no. 2, pp. 220--240, 1998.
-\bibitem{ramchurn2010} S. D. Ramchurn, A. Farinelli, K. S. Macarthur, and N. R. Jennings, ``Decentralized coordination in RoboCup Rescue,'' \emph{Comput. J.}, vol. 53, no. 9, pp. 1447--1461, 2010.
+\bibitem{drew2021} D. S. Drew, ``Multi-agent systems for search and rescue applications,'' \emph{Curr. Robot. Rep.}, vol. 2, pp. 189--200, 2021.
+\bibitem{quinton2023} F. Quinton, C. Grand, and C. Lesire, ``Market approaches to the multi-robot task allocation problem: A survey,'' \emph{J. Intell. Robot. Syst.}, vol. 107, no. 2, art. 29, 2023.
+\bibitem{buckman2019} N. Buckman, H.-L. Choi, and J. P. How, ``Partial replanning for decentralized dynamic task allocation,'' in \emph{Proc. AIAA SciTech Forum}, San Diego, CA, USA, 2019, paper AIAA 2019-0915.
+\bibitem{chopra2017} S. Chopra, G. Notarstefano, M. Rice, and M. Egerstedt, ``A distributed version of the Hungarian method for multirobot assignment,'' \emph{IEEE Trans. Robot.}, vol. 33, no. 4, pp. 932--947, 2017.
+\bibitem{chakraa2023} H. Chakraa, F. Guérin, E. Leclercq, and D. Lefebvre, ``Optimization techniques for multi-robot task allocation problems: Review on the state-of-the-art,'' \emph{Robot. Auton. Syst.}, vol. 168, art. 104492, 2023.
+\bibitem{aziz2022} H. Aziz, A. Pal, A. Pourmiri, F. Ramezani, and B. Sims, ``Task allocation using a team of robots,'' \emph{Curr. Robot. Rep.}, vol. 3, pp. 227--238, 2022.
+\bibitem{athira2024} Athira K. A., Divya Udayan J., and U. Subramaniam, ``A systematic literature review on multi-robot task allocation,'' \emph{ACM Comput. Surv.}, vol. 57, no. 3, art. 68, 2024.
+\bibitem{nunes2017} E. Nunes, M. Manner, H. Mitiche, and M. Gini, ``A taxonomy for task allocation problems with temporal and ordering constraints,'' \emph{Robot. Auton. Syst.}, vol. 90, pp. 55--70, 2017.
+\bibitem{rizk2019} Y. Rizk, M. Awad, and E. W. Tunstel, ``Cooperative heterogeneous multi-robot systems: A survey,'' \emph{ACM Comput. Surv.}, vol. 52, no. 2, art. 29, 2019.
+\bibitem{ghassemi2022} P. Ghassemi and S. Chowdhury, ``Multi-robot task allocation in disaster response: Addressing dynamic tasks with deadlines and robots with range and payload constraints,'' \emph{Robot. Auton. Syst.}, vol. 147, art. 103905, 2022.
 \bibitem{otte2020} M. Otte, M. J. Kuhlman, and D. Sofge, ``Auctions for multi-robot task allocation in communication limited environments,'' \emph{Auton. Robots}, vol. 44, no. 3, pp. 547--584, 2020.
-\bibitem{koutsoupias1999} E. Koutsoupias and C. Papadimitriou, ``Worst-case equilibria,'' in \emph{Proc. 16th Annu. Symp. Theoretical Aspects of Computer Science (STACS)}, LNCS vol. 1563, 1999, pp. 404--413.
+\bibitem{gielis2022} J. Gielis, A. Shankar, and A. Prorok, ``A critical review of communications in multi-robot systems,'' \emph{Curr. Robot. Rep.}, vol. 3, pp. 213--225, 2022.
+\bibitem{lott2026} J. Lott and V. Honary, ``Decentralized multi-robot task allocation under degraded communication: A benchmark of performance, reliability, and computation,'' arXiv:2609.13711, 2026.
+\bibitem{paccagnan2020} D. Paccagnan, R. Chandan, and J. R. Marden, ``Utility design for distributed resource allocation---Part I: Characterizing and optimizing the exact price of anarchy,'' \emph{IEEE Trans. Autom. Control}, vol. 65, no. 11, pp. 4616--4631, 2020.
 \bibitem{virtanen2020} P. Virtanen \emph{et al.}, ``SciPy 1.0: Fundamental algorithms for scientific computing in Python,'' \emph{Nature Methods}, vol. 17, pp. 261--272, 2020.
-\bibitem{wilcoxon1945} F. Wilcoxon, ``Individual comparisons by ranking methods,'' \emph{Biometrics Bull.}, vol. 1, no. 6, pp. 80--83, 1945.
-\bibitem{holm1979} S. Holm, ``A simple sequentially rejective multiple test procedure,'' \emph{Scand. J. Statist.}, vol. 6, no. 2, pp. 65--70, 1979.
-\bibitem{kerby2014} D. S. Kerby, ``The simple difference formula: An approach to teaching nonparametric correlation,'' \emph{Comprehensive Psychology}, vol. 3, art. 11.IT.3.1, 2014.
-\bibitem{efron1979} B. Efron, ``Bootstrap methods: Another look at the jackknife,'' \emph{Ann. Statist.}, vol. 7, no. 1, pp. 1--26, 1979.
 \end{thebibliography}
 
 \end{document}
