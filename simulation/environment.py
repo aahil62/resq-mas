@@ -64,6 +64,7 @@ class Victim:
     rescue_time: int | None = None
     waiting_time: int = 0
     hospital: Position | None = None
+    appear_time: int = 0  # tick at which the victim becomes known (0 = present from the start)
 
     def priority(self) -> float:
         """priority = severity_score + waiting_weight * waiting_time.
@@ -121,6 +122,15 @@ class ScenarioConfig:
     blockage_level: float = 0.0  # fraction of road cells that get blocked at some point
     initial_resources: int = 6
     max_time: int = 300
+    # Window (in ticks) over which blockages are scheduled; None keeps the
+    # original behaviour of scaling it with max_time. Pinning it lets a long
+    # safety cap on max_time coexist with blockages that land mid-run.
+    blockage_horizon: int | None = None
+    # Dynamic arrivals: when > 0, each victim appears at a uniformly random
+    # tick in [0, arrival_window] instead of at t=0. Drawn from a separate
+    # random stream so grid, positions, severities and blockages are
+    # identical to the static world with the same seed.
+    arrival_window: int = 0
 
 
 def _carve_grid(rng: random.Random, width: int, height: int) -> tuple[list[list[CellType]], Position, list[Position]]:
@@ -195,13 +205,19 @@ def generate_scenario(config: ScenarioConfig) -> tuple[list[list[CellType]], Pos
     blockable = [c for c in road_cells if c not in used]
     n_block = int(config.blockage_level * len(blockable))
     events: list[ScheduledEvent] = []
+    horizon = config.blockage_horizon if config.blockage_horizon is not None else config.max_time
     for cell in blockable[:n_block]:
-        block_t = rng.randint(1, max(1, int(config.max_time * 0.4)))
-        duration = rng.randint(10, max(11, config.max_time // 4))
+        block_t = rng.randint(1, max(1, int(horizon * 0.4)))
+        duration = rng.randint(10, max(11, horizon // 4))
         events.append(ScheduledEvent(timestep=block_t, kind="block", payload={"cell": cell}))
         events.append(ScheduledEvent(timestep=block_t + duration, kind="unblock", payload={"cell": cell}))
 
     events.sort(key=lambda e: e.timestep)
+
+    if config.arrival_window > 0:
+        arrival_rng = random.Random(config.seed * 104729 + 3)
+        for v in victims:
+            v.appear_time = arrival_rng.randint(0, config.arrival_window)
     return grid, hospital, depots, victims, events
 
 
@@ -255,8 +271,9 @@ class Environment:
         return applied
 
     def tick_waiting_times(self) -> None:
+        # Waiting time counts from a victim's appearance, not from t=0.
         for v in self.victims.values():
-            if v.status != VictimStatus.RESCUED:
+            if v.status != VictimStatus.RESCUED and v.appear_time <= self.time:
                 v.waiting_time += 1
 
     def advance_time(self) -> None:

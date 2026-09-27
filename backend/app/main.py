@@ -21,5 +21,9 @@ app.include_router(health.router)
 app.include_router(simulation.router)
 app.include_router(experiments.router)
 
+PAPER_DIR = os.path.join(os.path.dirname(RESULTS_DIR), "paper")
+if os.path.isdir(PAPER_DIR):
+    app.mount("/paper", StaticFiles(directory=PAPER_DIR), name="paper")
+
 if os.path.isdir(RESULTS_DIR):
     app.mount("/results", StaticFiles(directory=RESULTS_DIR), name="results")

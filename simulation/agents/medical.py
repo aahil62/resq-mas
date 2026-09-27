@@ -21,7 +21,7 @@ PRIORITY_CHANGE_THRESHOLD = 0.05  # only publish PRIORITY_UPDATED on a meaningfu
 class MedicalTriageAgent(Agent):
     def __init__(self, agent_id: str = "medical"):
         super().__init__(agent_id)
-        self._registered = False
+        self._registered: set[str] = set()
         self._last_published_priority: dict[str, float] = {}
 
     def observe(self, environment) -> list:
@@ -31,19 +31,22 @@ class MedicalTriageAgent(Agent):
         self._victims = observations
 
     def communicate(self, shared_state: SharedState) -> None:
-        if not self._registered:
-            for v in self._victims:
-                shared_state.publish(Event(
-                    timestamp=self.timestamp, source=self.agent_id, type=EventType.VICTIM_DETECTED,
-                    payload={
-                        "victim_id": v.victim_id, "position": v.position, "severity": v.severity.value,
-                        "required_resources": v.required_resources,
-                    },
-                ))
-            self._registered = True
+        # Register each victim once, at its appearance time (t=0 for every
+        # victim in static scenarios; staggered under dynamic arrivals).
+        for v in self._victims:
+            if v.victim_id in self._registered or v.appear_time > self.timestamp:
+                continue
+            shared_state.publish(Event(
+                timestamp=self.timestamp, source=self.agent_id, type=EventType.VICTIM_DETECTED,
+                payload={
+                    "victim_id": v.victim_id, "position": v.position, "severity": v.severity.value,
+                    "required_resources": v.required_resources,
+                },
+            ))
+            self._registered.add(v.victim_id)
 
         for v in self._victims:
-            if v.status == "rescued":
+            if v.status == "rescued" or v.victim_id not in self._registered:
                 continue
             priority = v.priority()
             prev = self._last_published_priority.get(v.victim_id)

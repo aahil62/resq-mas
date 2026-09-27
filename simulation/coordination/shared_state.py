@@ -44,6 +44,9 @@ class SharedState:
         self.assignments: dict[str, str] = {}  # victim_id -> agent_id
         self.agent_status: dict[str, dict] = {}  # agent_id -> {position, status, target}
         self.resource_responses: dict[tuple[str, str], str] = {}  # (agent_id, victim_id) -> "granted"/"denied"
+        # Claims whose TASK_ASSIGNED broadcast was lost in transit (lossy
+        # communication experiments): the claimant knows, nobody else does.
+        self.hidden_claims: set[str] = set()
 
     # -- publishing -----------------------------------------------------
     def publish(self, event: Event) -> None:
@@ -75,6 +78,7 @@ class SharedState:
                 kv.assigned_agent = p["agent_id"]
         elif event.type == EventType.VICTIM_RESCUED:
             self.assignments.pop(p["victim_id"], None)
+            self.hidden_claims.discard(p["victim_id"])
             kv = self.known_victims.get(p["victim_id"])
             if kv:
                 kv.status = "rescued"
@@ -83,12 +87,15 @@ class SharedState:
         self.agent_status.setdefault(agent_id, {}).update(fields)
 
     # -- querying ---------------------------------------------------------
-    def unassigned_known_victims(self) -> list[KnownVictim]:
+    def unassigned_known_victims(self, viewer: str | None = None) -> list[KnownVictim]:
         """MAS mode: candidates that are neither rescued nor already
-        claimed by another agent's resolved assignment."""
+        claimed by another agent's resolved assignment. A claim whose
+        broadcast was lost is invisible to every agent except its owner."""
         return [
             v for v in self.known_victims.values()
-            if v.status != "rescued" and v.victim_id not in self.assignments
+            if v.status != "rescued" and (
+                v.victim_id not in self.assignments
+                or (v.victim_id in self.hidden_claims and self.assignments[v.victim_id] != viewer))
         ]
 
     def not_yet_rescued_known_victims(self) -> list[KnownVictim]:

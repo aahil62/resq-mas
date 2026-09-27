@@ -26,6 +26,40 @@ class RunResult:
     waiting_times: list[float]
     duplicate_conflicts: int
     event_log: list[dict] = field(default_factory=list)
+    severity_waits: list[tuple[str, float]] = field(default_factory=list)
+    wasted_ticks: int = 0
+    idle_ticks: int = 0
+    messages: int = 0
+    message_payload: int = 0
+    rescue_agents: int = 2
+    consensus_rounds: int = 0
+
+    def severity_weighted_wait(self) -> float:
+        """Mean waiting time weighted by severity score (critical=4 ... low=1),
+        so a minute lost on a critical victim costs four times one lost on a
+        low-severity victim."""
+        from simulation.environment import SEVERITY_SCORE, Severity
+        pairs = [(SEVERITY_SCORE[Severity(s)], w) for s, w in self.severity_waits]
+        total = sum(k for k, _ in pairs)
+        return sum(k * w for k, w in pairs) / total if total else 0.0
+
+    def critical_wait(self) -> float:
+        waits = [w for s, w in self.severity_waits if s == "critical"]
+        return _mean(waits) if waits else float("nan")
+
+    def to_extended_row(self) -> dict:
+        row = self.to_row()
+        row.update({
+            "rescue_agents": self.rescue_agents,
+            "weighted_wait": self.severity_weighted_wait(),
+            "critical_wait": self.critical_wait(),
+            "wasted_ticks": self.wasted_ticks,
+            "idle_ticks": self.idle_ticks,
+            "messages": self.messages,
+            "message_payload": self.message_payload,
+            "consensus_rounds": self.consensus_rounds,
+        })
+        return row
 
     def to_row(self) -> dict:
         return {

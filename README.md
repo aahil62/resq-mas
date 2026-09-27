@@ -103,17 +103,25 @@ npm run dev
 
 Open `http://localhost:5173`.
 
-- **Live Simulation** — drives the actual Python engine tick-by-tick.
-  Toggle between "NO COORDINATION" and "MULTI-AGENT", hit Run, and watch
-  Rescue A and Rescue B either duplicate effort or divide the work. The
-  event log shows exactly what the brief asks for: `TARGET_SELECTED` /
-  `DUPLICATE_DETECTED` under No Coordination, `TASK_PROPOSED` /
-  `TASK_CONFLICT` / `TASK_ASSIGNED` / `TASK_REASSIGNED` under MAS.
-- **Comparison** — "Effect of Multi-Agent Coordination": the 3-metric
-  table and 3 charts, read from `results/` (produced by
-  `experiments.runner`, above).
-- **Architecture** — the system diagram and the No-Coordination-vs-MAS /
-  BFS-vs-coordination explanation.
+- **Home** — the thesis ("three rescue teams that talk beat eight that
+  don't"), a live side-by-side replay of the same disaster under "No talking"
+  and "Negotiate" (115 vs 60 simulated minutes), the key findings, the three
+  agent roles, the six strategies, and one-click scenarios.
+- **Simulator** — pick a situation and one of the six strategies (plain names
+  with the paper's codes: IND, CLM, PR-1, PR-k, HUN, CBBA), then play, step or
+  skip to the end. "More settings" adds casualties arriving over time, lost
+  radio messages or outages, blocked roads, up to 8 teams and bigger cities.
+  A plain-language radio log explains every decision, and "Compare all six"
+  runs every strategy on the same disaster.
+- **Results** — the paper's 43,350-run study (`results/study/`): headline
+  numbers, the two-team table, interactive charts (hover for values and 95%
+  CIs), and "Run your own experiment" for fresh paired runs on the server.
+- **How it works** — the agent diagram, one simulated minute step by step,
+  the six strategies with their names in the paper, and the model's rules.
+
+Light and dark themes follow the system setting (toggle in the header).
+Fonts are bundled, so the site works offline. The paper PDF is served at
+`http://127.0.0.1:8000/paper/main.pdf`.
 
 ## Notes on reproducibility
 
@@ -124,3 +132,26 @@ Open `http://localhost:5173`.
   *same* `ScenarioConfig`, so the comparison is fair.
 - The default demo seed (11) and the 5 controlled-scenario seeds are fixed
   in `experiments/configs.py`.
+
+## Research paper and large-scale study
+
+`paper/main.tex` (compiled: `paper/main.pdf`) is an IEEE conference paper
+built on this codebase: *How Much Talk Does a Rescue Team Need? Decomposing
+the Value of Communication in Decentralized Multi-Agent Disaster Response.*
+
+The engine now supports five allocation protocols (`Simulation(policy=...)`):
+`independent` (the original No Coordination), `claim` (broadcast claims only),
+`mas` (the original one-round propose/resolve), `mas_iterative` (losers
+re-propose within the tick), `hungarian` (centralized optimal matching,
+reference only), and `cbba` (consensus-based bundle algorithm), plus any
+number of rescue agents, victims arriving over time
+(`ScenarioConfig(arrival_window=...)`), and independent or bursty
+Gilbert-Elliott message loss (`comm_loss=p`, `burst_length=L`). The original
+`results/` are unchanged by these extensions.
+
+```bash
+pip install -r requirements.txt       # adds scipy
+python -m experiments.study           # 43,350 paired runs -> results/study/ (~8 min, 4 cores)
+python -m experiments.paper_figures   # figures + LaTeX tables -> paper/figures, paper/tables
+cd paper && pdflatex main.tex && pdflatex main.tex
+```

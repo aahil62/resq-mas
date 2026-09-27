@@ -52,3 +52,18 @@ def test_bfs_unreachable_when_start_or_goal_blocked():
     grid = make_grid(blocked={(4, 4)})
     result = bfs(grid, (0, 0), (4, 4))
     assert not result.found
+
+
+def test_bfs_distances_matches_pairwise_bfs():
+    import random
+    from simulation.search.bfs import bfs_distances
+    rng = random.Random(3)
+    for _ in range(20):
+        blocked = {(rng.randrange(10), rng.randrange(10)) for _ in range(25)}
+        grid = GridSpec(width=10, height=10, blocked=blocked)
+        start = (rng.randrange(10), rng.randrange(10))
+        dist = bfs_distances(grid, start)
+        for r in range(10):
+            for c in range(10):
+                res = bfs(grid, start, (r, c))
+                assert dist.get((r, c), -1) == (res.path_length if res.found else -1)
