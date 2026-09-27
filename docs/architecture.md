@@ -1,5 +1,10 @@
 # RESQ-MAS Architecture
 
+> This document covers the original two-mode baseline (`independent` vs
+> `mas`, two agents). The engine has since grown to six coordination
+> protocols, N agents, victims arriving over time, and message loss — see
+> [`paper/main.pdf`](../paper/main.pdf) for that full system.
+
 ## The core idea
 
 Two rescue agents operate in the same disaster area. Several victims are

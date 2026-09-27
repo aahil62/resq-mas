@@ -1,22 +1,35 @@
 # RESQ-MAS — Multi-Agent Task Coordination for Disaster Rescue
 
-An AI-course project demonstrating one idea: **two independent rescue
-agents can waste effort by picking the same victim; agents that
-communicate their intended targets before committing can detect that,
-resolve it, and divide the work instead.**
+A multi-agent disaster-rescue simulator built around one question: **how
+much do rescue agents need to communicate before committing to a target?**
 
-- **No Coordination**: two rescue agents each independently pick their
-  best-scoring victim (priority + distance) and commit immediately. If
-  both pick the same one, both go -- one arrives to find it already
-  rescued.
-- **MAS**: both agents propose a target first. If they proposed the same
-  victim, a deterministic conflict-resolution rule picks a winner; the
-  loser immediately re-evaluates and picks its next-best target instead.
+The starting point is simple — **two independent rescue agents can waste
+effort by picking the same victim; agents that communicate their intended
+targets before committing can detect that, resolve it, and divide the work
+instead** — and the codebase grew into a testbed for six coordination
+protocols, evaluated across 43,350 simulated disasters in the paper
+[`paper/main.pdf`](paper/main.pdf) (*"Three Beats Eight: Coordination, Not
+Fleet Size, Wins Multi-Agent Disaster Rescue"*), with an interactive web
+dashboard (`backend/` + `frontend/`) built on the same engine.
 
-See [`docs/architecture.md`](docs/architecture.md) for how the system is
-built, [`docs/methodology.md`](docs/methodology.md) for the formulas, and
-[`docs/experiments.md`](docs/experiments.md) for exactly what was run to
-produce `results/`.
+## The six coordination protocols
+
+| Code | Name | What agents share before committing |
+|---|---|---|
+| `independent` | No Coordination | Nothing — each agent commits to its own best target immediately |
+| `claim` | Claim Broadcasting | An agent announces its choice after committing; others avoid claimed victims |
+| `mas` | One-round Propose–Resolve | Agents propose first; conflicts resolve by utility before anyone commits |
+| `mas_iterative` | Iterative Propose–Resolve | Like `mas`, but losers re-propose immediately within the same tick |
+| `hungarian` | Centralized Hungarian | A coordinator computes the optimal assignment from every agent's utility |
+| `cbba` | Consensus-Based Bundle Algorithm | Agents bid on bundles of future targets and reconcile via consensus rounds |
+
+All six run on one shared engine (`simulation/simulation.py`,
+`Simulation(policy=...)`), share the same environment, agents, BFS routing
+and metrics — so any measured difference comes from the coordination
+protocol alone. The engine also supports victims arriving over time
+(`ScenarioConfig(arrival_window=...)`), independent or bursty
+Gilbert–Elliott message loss (`comm_loss=p`, `burst_length=L`), road
+blockages, and any number of rescue agents.
 
 **Simulation assumption: one simulation timestep represents one minute of
 simulated disaster-response operation.** `t=115` means 115 simulated
@@ -30,13 +43,18 @@ the model.
 ## Project structure
 
 ```
-simulation/     the engine: environment, 4 agents, coordination, BFS, metrics
-experiments/    the 5 controlled scenarios + CSV/chart generation
-results/        generated CSV/JSON/PNG (checked in from the last full run)
-backend/        FastAPI wrapper around the engine
-frontend/       React (Vite) dashboard -- 3 views: Live Simulation, Comparison, Architecture
-tests/          pytest suite
-docs/           architecture / methodology / experiments write-ups
+simulation/     the engine: environment, N agents, 6 coordination protocols, BFS, metrics
+experiments/    scenario configs + two run modes:
+                  runner.py        the original 5 controlled scenarios (20 runs) -> results/
+                  study.py         the full paired study (43,350 runs) -> results/study/
+                  paper_figures.py builds paper/figures + paper/tables from results/study/
+results/        generated CSV/JSON/PNG from experiments.runner (checked in from the last full run)
+                results/study/     raw per-experiment CSVs + stats.json from experiments.study
+backend/        FastAPI app: live simulation sessions, custom experiment runs, study API, replay
+frontend/       React (Vite) dashboard -- Home, Simulator, Results, How it works
+paper/          IEEE paper (main.tex / main.pdf) built from results/study/
+docs/           architecture / methodology / experiments write-ups for the original two-mode baseline
+tests/          pytest suite (engine, protocols, BFS, API)
 ```
 
 ## Requirements
@@ -49,7 +67,7 @@ docs/           architecture / methodology / experiments write-ups
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate        # Windows: .venv\Scripts\activate
-pip install -r requirements.txt  # simulation + experiments + tests
+pip install -r requirements.txt  # simulation + experiments + tests + scipy
 pip install -r backend/requirements.txt
 cd frontend && npm install && cd ..
 ```
@@ -61,10 +79,11 @@ source .venv/bin/activate
 python -m pytest -q
 ```
 
-50 tests covering BFS, environment/victims/resources, independent target
-selection, duplicate target selection under No Coordination, conflict
-detection/resolution/reassignment under MAS, victim rescue, waiting time,
-and comparison metrics.
+96 tests covering BFS, environment/victims/resources, all six coordination
+protocols (independent selection and duplication, claim broadcasting,
+one-round and iterative propose/resolve, the Hungarian optimum, CBBA),
+victims arriving over time, independent and bursty message loss, victim
+rescue, waiting time, comparison metrics, and the FastAPI backend.
 
 ## Run a single simulation from the CLI
 
@@ -75,17 +94,40 @@ python -m simulation.simulation --mode mas --scenario medium --seed 11
 ```
 
 `--scenario` is `small`/`medium`/`large`; override with `--victim-count`,
-`--blockage-level`, `--rescue-agents`, `--max-time`.
+`--blockage-level`, `--rescue-agents`, `--max-time`. The CLI only exposes
+the original two modes; use `simulation.simulation.run_policy(...)` (or
+`experiments.study`) to run any of the other four protocols, arrivals, or
+message loss from Python.
 
-## Reproduce all experiments and results
+## Reproduce the original 5-scenario baseline
 
 ```bash
 source .venv/bin/activate
-python -m experiments.runner   # runs all 5 controlled scenarios (20 runs) and generates charts
+python -m experiments.runner   # runs the 5 controlled scenarios (20 runs) and generates charts
 ```
 
 Overwrites `results/` from a fresh, real execution — seeds are fixed
 (`experiments/configs.py`), so the numbers should match what's checked in.
+This is the original course benchmark, comparing only `independent` vs
+`mas`; it's kept as the "Original course benchmark" panel on the Results
+page and superseded by the full study below for anything else.
+
+## Reproduce the full paired study (the paper's numbers)
+
+```bash
+source .venv/bin/activate
+python -m experiments.study           # 43,350 paired runs -> results/study/ (~8 min, 4 cores)
+python -m experiments.paper_figures   # figures + LaTeX tables -> paper/figures, paper/tables
+cd paper && pdflatex main.tex && pdflatex main.tex
+```
+
+Six experiments (E1–E6): the two-agent baseline on random worlds, scaling
+from 1–8 agents, independent message loss, road blockages, victims
+arriving over time, and bursty message loss — each protocol run on the
+same randomly generated worlds for a paired comparison, with
+Wilcoxon/Holm-corrected significance tests and bootstrap confidence
+intervals. The original `results/` (from `experiments.runner`) is
+untouched by this — the two run modes write to separate directories.
 
 ## Run the web application
 
@@ -128,30 +170,20 @@ Fonts are bundled, so the site works offline. The paper PDF is served at
 - Every scenario is generated deterministically from `(seed, grid size,
   victim count, severities, blockage level, resources)` -- see
   `simulation/environment.generate_scenario`. Same seed -> same world.
-- No Coordination and MAS are always run against a world built from the
-  *same* `ScenarioConfig`, so the comparison is fair.
+- Every protocol in a given experiment is always run against a world built
+  from the *same* `ScenarioConfig`, so comparisons are paired and fair.
 - The default demo seed (11) and the 5 controlled-scenario seeds are fixed
-  in `experiments/configs.py`.
+  in `experiments/configs.py`; the study's seeds are fixed in
+  `experiments/study.py`.
+- `paper/main.pdf` embeds only TrueType fonts (no Type 3), so it passes
+  IEEE PDF eXpress font validation.
 
-## Research paper and large-scale study
+## Further reading
 
-`paper/main.tex` (compiled: `paper/main.pdf`) is an IEEE conference paper
-built on this codebase: *How Much Talk Does a Rescue Team Need? Decomposing
-the Value of Communication in Decentralized Multi-Agent Disaster Response.*
-
-The engine now supports five allocation protocols (`Simulation(policy=...)`):
-`independent` (the original No Coordination), `claim` (broadcast claims only),
-`mas` (the original one-round propose/resolve), `mas_iterative` (losers
-re-propose within the tick), `hungarian` (centralized optimal matching,
-reference only), and `cbba` (consensus-based bundle algorithm), plus any
-number of rescue agents, victims arriving over time
-(`ScenarioConfig(arrival_window=...)`), and independent or bursty
-Gilbert-Elliott message loss (`comm_loss=p`, `burst_length=L`). The original
-`results/` are unchanged by these extensions.
-
-```bash
-pip install -r requirements.txt       # adds scipy
-python -m experiments.study           # 43,350 paired runs -> results/study/ (~8 min, 4 cores)
-python -m experiments.paper_figures   # figures + LaTeX tables -> paper/figures, paper/tables
-cd paper && pdflatex main.tex && pdflatex main.tex
-```
+- [`docs/architecture.md`](docs/architecture.md), [`docs/methodology.md`](docs/methodology.md),
+  [`docs/experiments.md`](docs/experiments.md) — how the original two-mode
+  baseline (`independent` vs `mas`) is built, its formulas, and exactly what
+  `experiments.runner` runs. The six-protocol extension, arrivals, and
+  message loss are documented in the paper (`paper/main.tex`) instead.
+- [`paper/main.pdf`](paper/main.pdf) — the full write-up: related work,
+  methodology, all six experiments, and results.
