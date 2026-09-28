@@ -142,14 +142,14 @@ def _study_summary(mtime: float) -> dict:
         "e4": _agg(e4, ["blockage", "policy"], ["completion_time"]),
         "e5": _agg(e5, ["arrival_window", "policy"], ["avg_waiting_time", "weighted_wait", "duplicate_conflicts"]),
         "e6": _agg(e6, ["comm_loss", "burst_length", "policy"], ["completion_time", "duplicate_conflicts"]),
-        "three_beats_eight": beats,
+        "coordination_beats_scale": beats,
     }
 
 
 @router.get("/study")
 def study_summary() -> dict:
-    """Aggregates the paper's paired study (results/study/*.csv, produced by
-    `python -m experiments.study`): means and 95% CIs per experiment cell."""
+    """Aggregates the large-scale paired study (results/study/*.csv, produced
+    by `python -m experiments.study`): means and 95% CIs per experiment cell."""
     path = os.path.join(STUDY_DIR, "stats.json")
     if not os.path.exists(path):
         raise HTTPException(status_code=404, detail="No study results found. Run `python -m experiments.study` first.")

@@ -3,7 +3,8 @@
 > This document covers the original two-mode baseline (`independent` vs
 > `mas`, two agents). The engine has since grown to six coordination
 > protocols, N agents, victims arriving over time, and message loss — see
-> [`paper/main.pdf`](../paper/main.pdf) for that full system.
+> `experiments/study.py` and the Results page in the web dashboard for that
+> full system.
 
 ## The core idea
 

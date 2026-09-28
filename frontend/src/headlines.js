@@ -1,10 +1,10 @@
 // Headline figures, computed from the study summary served by the API so the
-// landing page, the Results page and the paper always agree.
+// landing page and the Results page always agree.
 export function computeHeadlines(study) {
   const e1 = Object.fromEntries(study.e1.map((r) => [r.policy, r]))
   const e1Gain = 100 * (1 - e1.mas.completion_time.mean / e1.no_coordination.completion_time.mean)
 
-  const three = study.three_beats_eight.filter((b) => b.coordinated_agents === 3)
+  const three = study.coordination_beats_scale.filter((b) => b.coordinated_agents === 3)
   const minWins = Math.min(...three.map((b) => b.wins))
   const n = three[0]?.n ?? 150
 

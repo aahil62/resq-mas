@@ -29,4 +29,3 @@ export const api = {
 }
 
 export const RESULTS_BASE = `${BASE}/results`
-export const PAPER_URL = `${BASE}/paper/main.pdf`

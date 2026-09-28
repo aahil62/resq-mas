@@ -12,8 +12,9 @@ from experiments.configs import DEFAULT_SEVERITY_SEQUENCE
 from simulation.environment import ScenarioConfig, VictimStatus
 from simulation.simulation import Simulation
 
-# Blockages start within the first 120 min and last 10-75 min, as in the paper,
-# independent of the (generous) safety cap on run length.
+# Blockages start within the first 120 min and last 10-75 min, matching the
+# large-scale study's default, independent of the (generous) safety cap on
+# run length.
 BLOCKAGE_HORIZON = 300
 
 

@@ -31,16 +31,16 @@ export default function Architecture({ go }) {
 
       <section className="band">
         <h3>Six coordination strategies</h3>
-        <p className="muted">Listed from least to most information shared before a team commits. The codes match the research paper.</p>
+        <p className="muted">Listed from least to most information shared before a team commits.</p>
         <div className="card" style={{ padding: 0 }}>
           <div className="table-wrap">
             <table>
-              <thead><tr><th>Strategy</th><th>Name in the paper</th><th>What the teams share</th></tr></thead>
+              <thead><tr><th>Strategy</th><th>Formal name</th><th>What the teams share</th></tr></thead>
               <tbody>
                 {PROTOCOLS.map((p) => (
                   <tr key={p.id}>
                     <td><ProtocolChip id={p.id} /></td>
-                    <td className="muted">{p.paper}</td>
+                    <td className="muted">{p.formal}</td>
                     <td style={{ whiteSpace: 'normal', minWidth: 320 }}>{p.desc}</td>
                   </tr>
                 ))}

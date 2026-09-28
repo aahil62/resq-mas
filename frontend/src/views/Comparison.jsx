@@ -1,11 +1,11 @@
 import ProtocolChip from '../components/ProtocolChip.jsx'
 import { useEffect, useMemo, useState } from 'react'
-import { api, PAPER_URL } from '../api.js'
+import { api } from '../api.js'
 import LineChart from '../components/LineChart.jsx'
 import { computeHeadlines } from '../headlines.js'
 import { PROTOCOL, PROTOCOLS } from '../protocols.js'
 
-// Every number on this page is computed from executed runs: the paper's
+// Every number on this page is computed from executed runs: the large-scale
 // paired study (results/study/*.csv via /api/experiments/study) or runs the
 // visitor launches below. Times are simulated minutes (1 tick = 1 minute).
 
@@ -27,9 +27,8 @@ export default function Comparison() {
         <div className="eyebrow">Results</div>
         <h2>What coordination is worth</h2>
         <p className="lede">
-          Findings from {h?.runs ? h.runs.toLocaleString() : 'the'} simulated disasters in the paper. Every strategy ran on the
+          Findings from {h?.runs ? h.runs.toLocaleString() : 'the'} simulated disasters. Every strategy ran on the
           same randomly generated cities, so each comparison is like for like. Hover a chart for exact values.
-          {' '}<a href={PAPER_URL} target="_blank" rel="noreferrer">Read the full paper (PDF)</a>.
         </p>
       </div>
 

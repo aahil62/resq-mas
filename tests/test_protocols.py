@@ -1,4 +1,4 @@
-"""Tests for the extended task-allocation protocols used in the paper
+"""Tests for the extended task-allocation protocols
 (claim broadcast, iterative negotiation, centralized Hungarian reference)
 and for lossy communication."""
 

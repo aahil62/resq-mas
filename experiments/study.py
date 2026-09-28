@@ -1,6 +1,6 @@
-"""Large-scale study behind the RESQ-MAS paper (paper/main.tex).
+"""Large-scale paired study of the six coordination protocols.
 
-Four experiments, each on freshly generated random worlds (seeds 1000+,
+Six experiments, each on freshly generated random worlds (seeds 1000+,
 disjoint from the curated demo seeds in experiments/configs.py), each world
 run once per task-allocation protocol so every comparison is paired:
 

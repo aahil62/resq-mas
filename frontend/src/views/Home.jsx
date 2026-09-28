@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { api, PAPER_URL } from '../api.js'
+import { api } from '../api.js'
 import RaceReplay from '../components/RaceReplay.jsx'
 import { computeHeadlines } from '../headlines.js'
 import { setPendingPreset } from '../intent.js'
@@ -26,7 +26,6 @@ export default function Home({ go }) {
           <div className="hero-cta">
             <button className="btn primary big" onClick={() => go('simulator')}>Try the simulator</button>
             <button className="btn big" onClick={() => go('results')}>See the results</button>
-            <a className="btn big quiet" href={PAPER_URL} target="_blank" rel="noreferrer">Read the paper (PDF)</a>
           </div>
         </div>
         <RaceReplay />

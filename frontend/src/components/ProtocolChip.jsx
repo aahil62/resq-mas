@@ -1,6 +1,6 @@
 import { PROTOCOL } from '../protocols.js'
 
-// A strategy's colour, plain name and paper code, used everywhere a strategy is named.
+// A strategy's colour, plain name and short code, used everywhere a strategy is named.
 export default function ProtocolChip({ id, withName = true }) {
   const p = PROTOCOL[id]
   if (!p) return null

@@ -9,8 +9,3 @@ docs/exports/
 
 .DS_Store
 *.log
-
-# LaTeX build files
-paper/*.aux
-paper/*.log
-paper/*.out

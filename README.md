@@ -7,10 +7,8 @@ The starting point is simple — **two independent rescue agents can waste
 effort by picking the same victim; agents that communicate their intended
 targets before committing can detect that, resolve it, and divide the work
 instead** — and the codebase grew into a testbed for six coordination
-protocols, evaluated across 43,350 simulated disasters in the paper
-[`paper/main.pdf`](paper/main.pdf) (*"Three Beats Eight: Coordination, Not
-Fleet Size, Wins Multi-Agent Disaster Rescue"*), with an interactive web
-dashboard (`backend/` + `frontend/`) built on the same engine.
+protocols, evaluated across 43,350 simulated disasters, with an interactive
+web dashboard (`backend/` + `frontend/`) built on the same engine.
 
 ## The six coordination protocols
 
@@ -45,14 +43,12 @@ the model.
 ```
 simulation/     the engine: environment, N agents, 6 coordination protocols, BFS, metrics
 experiments/    scenario configs + two run modes:
-                  runner.py        the original 5 controlled scenarios (20 runs) -> results/
-                  study.py         the full paired study (43,350 runs) -> results/study/
-                  paper_figures.py builds paper/figures + paper/tables from results/study/
+                  runner.py   the original 5 controlled scenarios (20 runs) -> results/
+                  study.py    the full paired study (43,350 runs) -> results/study/
 results/        generated CSV/JSON/PNG from experiments.runner (checked in from the last full run)
-                results/study/     raw per-experiment CSVs + stats.json from experiments.study
+                results/study/  raw per-experiment CSVs + stats.json from experiments.study
 backend/        FastAPI app: live simulation sessions, custom experiment runs, study API, replay
 frontend/       React (Vite) dashboard -- Home, Simulator, Results, How it works
-paper/          IEEE paper (main.tex / main.pdf) built from results/study/
 docs/           architecture / methodology / experiments write-ups for the original two-mode baseline
 tests/          pytest suite (engine, protocols, BFS, API)
 ```
@@ -112,13 +108,11 @@ This is the original course benchmark, comparing only `independent` vs
 `mas`; it's kept as the "Original course benchmark" panel on the Results
 page and superseded by the full study below for anything else.
 
-## Reproduce the full paired study (the paper's numbers)
+## Reproduce the full paired study
 
 ```bash
 source .venv/bin/activate
-python -m experiments.study           # 43,350 paired runs -> results/study/ (~8 min, 4 cores)
-python -m experiments.paper_figures   # figures + LaTeX tables -> paper/figures, paper/tables
-cd paper && pdflatex main.tex && pdflatex main.tex
+python -m experiments.study   # 43,350 paired runs -> results/study/ (~8 min, 4 cores)
 ```
 
 Six experiments (E1–E6): the two-agent baseline on random worlds, scaling
@@ -150,20 +144,19 @@ Open `http://localhost:5173`.
   and "Negotiate" (115 vs 60 simulated minutes), the key findings, the three
   agent roles, the six strategies, and one-click scenarios.
 - **Simulator** — pick a situation and one of the six strategies (plain names
-  with the paper's codes: IND, CLM, PR-1, PR-k, HUN, CBBA), then play, step or
+  with short codes: IND, CLM, PR-1, PR-k, HUN, CBBA), then play, step or
   skip to the end. "More settings" adds casualties arriving over time, lost
   radio messages or outages, blocked roads, up to 8 teams and bigger cities.
   A plain-language radio log explains every decision, and "Compare all six"
   runs every strategy on the same disaster.
-- **Results** — the paper's 43,350-run study (`results/study/`): headline
+- **Results** — the 43,350-run study (`results/study/`): headline
   numbers, the two-team table, interactive charts (hover for values and 95%
   CIs), and "Run your own experiment" for fresh paired runs on the server.
 - **How it works** — the agent diagram, one simulated minute step by step,
-  the six strategies with their names in the paper, and the model's rules.
+  the six strategies with their formal names, and the model's rules.
 
 Light and dark themes follow the system setting (toggle in the header).
-Fonts are bundled, so the site works offline. The paper PDF is served at
-`http://127.0.0.1:8000/paper/main.pdf`.
+Fonts are bundled, so the site works offline.
 
 ## Notes on reproducibility
 
@@ -175,8 +168,6 @@ Fonts are bundled, so the site works offline. The paper PDF is served at
 - The default demo seed (11) and the 5 controlled-scenario seeds are fixed
   in `experiments/configs.py`; the study's seeds are fixed in
   `experiments/study.py`.
-- `paper/main.pdf` embeds only TrueType fonts (no Type 3), so it passes
-  IEEE PDF eXpress font validation.
 
 ## Further reading
 
@@ -184,6 +175,5 @@ Fonts are bundled, so the site works offline. The paper PDF is served at
   [`docs/experiments.md`](docs/experiments.md) — how the original two-mode
   baseline (`independent` vs `mas`) is built, its formulas, and exactly what
   `experiments.runner` runs. The six-protocol extension, arrivals, and
-  message loss are documented in the paper (`paper/main.tex`) instead.
-- [`paper/main.pdf`](paper/main.pdf) — the full write-up: related work,
-  methodology, all six experiments, and results.
+  message loss are covered by `experiments/study.py` and the web dashboard's
+  Results and How it works pages instead.

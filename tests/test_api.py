@@ -61,10 +61,10 @@ def test_custom_experiment_is_paired_across_protocols():
 
 @pytest.mark.skipif(not os.path.exists(os.path.join(os.path.dirname(__file__), "..", "results", "study", "stats.json")),
                     reason="study results not generated")
-def test_study_summary_matches_paper_headlines():
+def test_study_summary_matches_published_headlines():
     d = client.get("/api/experiments/study").json()
     e1 = {r["policy"]: r for r in d["e1"]}
     gain = 1 - e1["mas"]["completion_time"]["mean"] / e1["no_coordination"]["completion_time"]["mean"]
     assert abs(gain - 0.290) < 0.005
-    three = [b for b in d["three_beats_eight"] if b["coordinated_agents"] == 3]
+    three = [b for b in d["coordination_beats_scale"] if b["coordinated_agents"] == 3]
     assert len(three) == 3 and all(b["coordinated_T"] < b["independent8_T"] for b in three)

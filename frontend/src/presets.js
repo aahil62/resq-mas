@@ -1,4 +1,4 @@
-// Ready-made situations that reproduce the paper's key findings.
+// Ready-made situations that reproduce the study's key findings.
 export const BASE_CONFIG = {
   policy: 'no_coordination', seed: 11, victim_count: 6, blockage_level: 0.0, rescue_agent_count: 2,
   width: 15, arrival_window: 0, comm_loss: 0, loss_pattern: 'independent', burst_length: 5,
